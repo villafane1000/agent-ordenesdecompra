@@ -7,7 +7,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { herramientas, porNombre, ejecutar } from "../tools/oc.js";
-import type { Evaluacion } from "../domain/controles.js";
+import { evaluarSolicitud, type Evaluacion } from "../domain/controles.js";
+import { leerCaso } from "../data/repo.js";
 
 type Msg = Anthropic.MessageParam;
 export type Evento =
@@ -15,7 +16,10 @@ export type Evento =
   | { tipo: "herramienta"; id: string; nombre: string; input: unknown; resultado?: unknown; error?: string; ms: number }
   | { tipo: "confirmacion"; id: string; nombre: string; input: unknown; decision: "aprobada" | "rechazada" };
 
-export interface Pendiente { toolUseId: string; nombre: string; input: Record<string, unknown>; resultadosPrevios: Anthropic.ToolResultBlockParam[]; firma?: string }
+export interface Pendiente { toolUseId: string; nombre: string; input: Record<string, unknown>; resultadosPrevios: Anthropic.ToolResultBlockParam[]; firma?: string; resumen?: ResumenOC }
+
+/** Resumen determinista de la OC que se muestra al humano antes de aprobar (no lo redacta el modelo). */
+export interface ResumenOC { solicitudId: string; decision: string; retroactiva: boolean; proveedor: string | null; nit: string; centroCosto: string; descripcion: string; subtotal: number; indicadorIva: string; tasaIva: number; iva: number; total: number; condicionPago: string; aprobadoPor: string | null; alertas: string[] }
 export interface Peticion { modo?: "llm" | "reglas"; messages: Msg[]; mensaje?: string; confirmacion?: { toolUseId: string; aprobado: boolean; comentario?: string }; pendiente?: Pendiente }
 export interface Respuesta { modo: "llm" | "reglas"; messages: Msg[]; eventos: Evento[]; pendiente: Pendiente | null; uso: { inputTokens: number; outputTokens: number; costoUSD: number; llamadas: number } }
 
@@ -52,7 +56,24 @@ async function correrHerramienta(id: string, nombre: string, input: unknown, eve
 // La acción pendiente viaja al navegador; se firma para que no pueda alterarse antes de aprobarla.
 const SECRETO = process.env.SIGNING_SECRET ?? apiKey() ?? "dev-secret";
 const firmar = (x: Pendiente) => createHmac("sha256", SECRETO).update(JSON.stringify([x.toolUseId, x.nombre, x.input, x.resultadosPrevios])).digest("hex");
-const conFirma = (x: Pendiente | null) => (x ? { ...x, firma: firmar(x) } : null);
+const conFirma = (x: Pendiente | null) => (x ? { ...x, firma: firmar(x), resumen: resumir(x) } : null);
+
+function resumir(x: Pendiente): ResumenOC | undefined {
+  const id = x.input.solicitudId;
+  if (x.nombre !== "crear_oc_sap" || typeof id !== "string") return undefined;
+  try {
+    const caso = leerCaso(id);
+    const ev = evaluarSolicitud(caso);
+    const v = ev.valores;
+    return {
+      solicitudId: id, decision: ev.decision, retroactiva: ev.retroactiva, proveedor: v.proveedor, nit: caso.solicitud.nitProveedor,
+      centroCosto: caso.solicitud.centroCosto + (caso.solicitud.subarea ? " / " + caso.solicitud.subarea : ""), descripcion: caso.solicitud.descripcion,
+      subtotal: v.subtotal, indicadorIva: v.indicadorIva, tasaIva: v.tasaIva, iva: v.iva, total: v.total, condicionPago: v.condicionPago,
+      aprobadoPor: caso.aprobacion?.aprobador ?? null,
+      alertas: ev.controles.filter((c) => c.resultado !== "OK").map((c) => `${c.id} ${c.control}: ${c.detalle}`),
+    };
+  } catch { return undefined; }
+}
 const firmaValida = (x: Pendiente) => { const a = Buffer.from(x.firma ?? ""), b = Buffer.from(firmar(x)); return a.length === b.length && timingSafeEqual(a, b); };
 
 export async function turno(p: Peticion): Promise<Respuesta> {

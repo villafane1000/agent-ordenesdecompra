@@ -1,0 +1,30 @@
+[
+  {
+    "nit": "900123456-1",
+    "razonSocial": "Tecnología Andina S.A.S.",
+    "estado": "ACTIVO",
+    "indicadorIvaDefault": "V19",
+    "condicionPagoDefault": "N30"
+  },
+  {
+    "nit": "800987654-3",
+    "razonSocial": "Suministros del Caribe Ltda.",
+    "estado": "ACTIVO",
+    "indicadorIvaDefault": "V19",
+    "condicionPagoDefault": "N45"
+  },
+  {
+    "nit": "901555222-7",
+    "razonSocial": "Servicios Express S.A.S.",
+    "estado": "BLOQUEADO",
+    "indicadorIvaDefault": "V19",
+    "condicionPagoDefault": "N30"
+  },
+  {
+    "nit": "830111999-0",
+    "razonSocial": "Capacitación Pro S.A.S.",
+    "estado": "ACTIVO",
+    "indicadorIvaDefault": "V0",
+    "condicionPagoDefault": "N15"
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "id": "sol-003",
+  "solicitante": "jorge.mora@periferia.test",
+  "nitProveedor": "800987654-3",
+  "centroCosto": "CC-2001",
+  "subarea": "Mercadeo",
+  "descripcion": "Material POP campaña Q4",
+  "monto": 14000000,
+  "indicadorIva": "V19",
+  "condicionPago": "N45",
+  "fecha": "2026-09-05"
+}

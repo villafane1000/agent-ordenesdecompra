@@ -72,9 +72,19 @@ function toolCard(e) {
   add(`<details class="tool ${e.error ? "err" : ""}" ${extra ? "open" : ""}><summary>🔧 <span class="name">${e.nombre}</span> ${badge}<span class="ms">${e.ms} ms</span></summary>${extra}<pre>entrada: ${esc(JSON.stringify(e.input, null, 2))}\n\n${e.error ? "error: " + esc(e.error) : "resultado: " + esc(JSON.stringify(r, null, 2))}</pre></details>`);
 }
 
+const cop = (n) => "$" + Math.round(n).toLocaleString("es-CO");
+function resumenHtml(r) {
+  const fila = (k, v) => `<tr><td>${k}</td><td><b>${esc(v)}</b></td></tr>`;
+  return `<table class="ctl" style="margin:4px 0 8px">${[
+    fila("Solicitud", r.solicitudId), fila("Proveedor", `${r.proveedor ?? "?"} (NIT ${r.nit})`), fila("Centro de costo", r.centroCosto),
+    fila("Descripción", r.descripcion), fila("Subtotal", cop(r.subtotal)), fila(`IVA ${r.indicadorIva} (${Math.round(r.tasaIva * 100)} %)`, cop(r.iva)),
+    fila("Total", cop(r.total)), fila("Condición de pago", r.condicionPago), fila("Aprobado por", r.aprobadoPor ?? "—"),
+  ].join("")}</table>${r.retroactiva ? '<div style="color:var(--bad);font-weight:600;margin-bottom:6px">Compra retroactiva: escribe la justificación antes de aprobar.</div>' : ""}${r.alertas.length ? `<div style="margin-bottom:6px">Alertas:<br>${r.alertas.map(esc).join("<br>")}</div>` : ""}`;
+}
+
 function confirmCard(p) {
   const d = add(`<div class="confirm"><h3>⚠ Se requiere tu confirmación</h3>
-    <div class="det">El agente quiere ejecutar <b>${p.nombre}</b> con:<pre style="margin:6px 0;white-space:pre-wrap">${esc(JSON.stringify(p.input, null, 2))}</pre>Esta acción crea una orden de compra en SAP.</div>
+    <div class="det">${p.resumen ? resumenHtml(p.resumen) : `El agente quiere ejecutar <b>${p.nombre}</b> con:<pre style="margin:6px 0;white-space:pre-wrap">${esc(JSON.stringify(p.input, null, 2))}</pre>`}Esta acción crea una orden de compra en SAP.</div>
     <textarea placeholder="Comentario o justificación (obligatoria para compras retroactivas)"></textarea>
     <div class="acts"><button class="btn ok">Aprobar y crear OC</button><button class="btn no">Rechazar</button></div></div>`);
   const [ok, no] = d.querySelectorAll("button"), ta = d.querySelector("textarea");

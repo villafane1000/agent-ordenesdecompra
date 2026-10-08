@@ -54,7 +54,7 @@ Capas y responsabilidades:
 1. El usuario escribe (p. ej. "procesa sol-003").
 2. El modelo decide la herramienta; el runtime valida la entrada con zod y la ejecuta.
 3. Orden obligatorio (prompt + defensa en código): `leer_solicitud` → `validar_solicitud` → `crear_oc_sap`.
-4. Si el modelo pide `crear_oc_sap` (marcada `requiereConfirmacion`), **el runtime no la ejecuta**: pausa el ciclo y devuelve una acción pendiente **firmada con HMAC** al navegador, que la muestra resaltada con *Aprobar / Rechazar* y un campo de justificación.
+4. Si el modelo pide `crear_oc_sap` (marcada `requiereConfirmacion`), **el runtime no la ejecuta**: pausa el ciclo y devuelve una acción pendiente **firmada con HMAC** al navegador, que la muestra resaltada con *Aprobar / Rechazar* y un campo de justificación. El recuadro muestra un **resumen de la OC calculado por las reglas** (proveedor, centro de costo, subtotal, IVA, total, condición de pago, aprobador, alertas), no redactado por el modelo: la persona aprueba sobre cifras verificadas.
 5. Al aprobar, el runtime verifica la firma (no se puede alterar el `solicitudId` en el navegador), ejecuta la herramienta, entrega el resultado al modelo y este informa el número de OC.
 6. `crear_oc_sap` **re-evalúa los controles** antes de llamar a SAP: aunque el modelo o el usuario lo intenten, una solicitud `RECHAZADA` nunca genera OC (defensa en profundidad).
 7. Límite de 10 iteraciones por turno; los errores de herramientas vuelven al modelo como `is_error` para que se recupere o lo explique.
@@ -77,6 +77,8 @@ Capas y responsabilidades:
 | C08 | Condición de pago válida (default del proveedor si falta) | condiciones-pago.json | BLOQUEO | Datos maestros consistentes |
 | C09 | Compra retroactiva: factura anterior a la aprobación | factura.txt | ALERTA + justificación obligatoria | Detectar desvío del proceso |
 | — | Idempotencia: una OC por solicitud | SAP | Devuelve la OC existente | Evita duplicados por reintentos |
+
+**Pruebas automáticas (`npm test`, 14 casos):** cada control de la matriz, extracción de montos, determinismo, que `crear_oc_sap` nunca cree una OC rechazada, justificación obligatoria en retroactivas, idempotencia, validación zod de entradas, y que la acción pendiente de aprobación no pueda alterarse en el navegador. Usan fixtures propios en `tests/fixtures`, independientes de los datos del reto.
 
 Decisión: cualquier BLOQUEO → `RECHAZADA`; solo alertas → `REQUIERE_REVISION` (crear exige que la persona lo pida y lo apruebe); todo OK → `LISTA_PARA_OC` (igual pasa por confirmación humana).
 

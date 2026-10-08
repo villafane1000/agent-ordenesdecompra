@@ -1,0 +1,12 @@
+{
+  "id": "sol-002",
+  "solicitante": "maria.perez@periferia.test",
+  "nitProveedor": "901555222-7",
+  "centroCosto": "CC-2001",
+  "subarea": "Ventas",
+  "descripcion": "Servicio de mensajería",
+  "monto": 1500000,
+  "indicadorIva": "V19",
+  "condicionPago": "N30",
+  "fecha": "2026-09-03"
+}

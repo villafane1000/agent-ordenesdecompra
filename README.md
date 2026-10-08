@@ -9,7 +9,7 @@ Agente conversacional en TypeScript que valida solicitudes de compra y crea órd
 | Entregable solicitado | Dónde está |
 |---|---|
 | 1. Repositorio con arquitectura limpia | Este repositorio. System prompt en [`agent/prompt.md`](agent/prompt.md), herramientas zod en [`src/tools/oc.ts`](src/tools/oc.ts), backend en [`src/agent/runtime.ts`](src/agent/runtime.ts), chat en [`public/index.html`](public/index.html) |
-| 2. Script de verificación sin LLM | [`demo.ts`](demo.ts) → `npm install && npx tsx demo.ts` (o `bun demo.ts`) |
+| 2. Script de verificación sin LLM | [`demo.ts`](demo.ts) → `npm install && npx tsx demo.ts` (o `bun demo.ts`). Además, `npm test` corre las pruebas automáticas de [`tests/`](tests/) |
 | 3. Enlace público funcional | https://agent-ordenesdecompra.vercel.app |
 | 4. Documentación técnica | [`SOLUCION.md`](SOLUCION.md): arquitectura, ciclo del agente, matriz de controles, adaptador SAP real y análisis de órdenes retroactivas |
 
@@ -29,6 +29,7 @@ Node 20+ (o Bun). Opcional: `ANTHROPIC_API_KEY` para el modo con LLM.
 ```bash
 npm install
 npx tsx demo.ts          # verificación de los 6 casos, sin LLM   (o: bun demo.ts)
+npm test                 # 14 pruebas de la matriz de controles y de las garantías del agente
 npx tsx scripts/dev-server.ts   # chat local en http://localhost:3000
 ```
 
@@ -52,4 +53,5 @@ src/agent/runtime.ts   ciclo del agente (LLM y reglas), confirmación humana
 api/                   funciones serverless (Vercel)
 public/index.html      chat
 demo.ts                verificación determinista
+tests/                 pruebas de controles, idempotencia, confirmación humana y firma
 ```
