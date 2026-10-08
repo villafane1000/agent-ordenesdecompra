@@ -1,0 +1,6 @@
+FACTURA ELECTRÓNICA FE-7781
+Proveedor: Capacitación Pro S.A.S.
+NIT: 830111999-0
+Fecha de emisión: 2026-09-01
+Concepto: Curso liderazgo
+Total: $3.000.000

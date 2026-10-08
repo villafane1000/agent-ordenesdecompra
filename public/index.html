@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agente de Órdenes de Compra</title>
+<style>
+  :root{--bg:#f6f7f5;--panel:#fff;--ink:#17201b;--muted:#5f6b64;--line:#e2e6e3;--brand:#1f6b3a;--brand-soft:#e7f2ea;--ok:#1f7a45;--warn:#a86400;--warn-soft:#fff4e0;--bad:#b42318;--bad-soft:#fdecea;--code:#f1f3f2}
+  @media (prefers-color-scheme:dark){:root{--bg:#111513;--panel:#181e1b;--ink:#e6ece8;--muted:#9aa7a0;--line:#2a332e;--brand:#4fbf78;--brand-soft:#1c2c22;--ok:#5ccf8a;--warn:#f0b257;--warn-soft:#2e2414;--bad:#ff8a80;--bad-soft:#331a19;--code:#1f2622}}
+  *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+  header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:2}
+  header h1{font-size:16px;margin:0;font-weight:650}header .sub{color:var(--muted);font-size:13px}
+  .spacer{flex:1}.modo{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .modo button{border:0;background:transparent;color:var(--muted);padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}.modo button.on{background:var(--brand);color:#fff}
+  main{max-width:900px;margin:0 auto;padding:20px 16px 180px}
+  .msg{margin:14px 0;display:flex}.msg.user{justify-content:flex-end}
+  .bubble{max-width:85%;padding:10px 14px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word}
+  .user .bubble{background:var(--brand);color:#fff;border-bottom-right-radius:4px}.bot .bubble{background:var(--panel);border:1px solid var(--line);border-bottom-left-radius:4px}
+  .tool{margin:8px 0;border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:8px;background:var(--panel);font-size:13px}
+  .tool.err{border-left-color:var(--bad)}.tool summary{cursor:pointer;padding:8px 12px;display:flex;gap:8px;align-items:center;list-style:none}
+  .tool summary::-webkit-details-marker{display:none}.tool .name{font-family:ui-monospace,Menlo,monospace;font-weight:600}.tool .ms{color:var(--muted);margin-left:auto}
+  .tool pre{margin:0;padding:10px 12px;background:var(--code);border-top:1px solid var(--line);overflow:auto;max-height:280px;font-size:12px}
+  .pill{font-size:11px;font-weight:650;padding:2px 8px;border-radius:99px;letter-spacing:.02em}
+  .p-LISTA_PARA_OC,.p-OK{background:var(--brand-soft);color:var(--ok)}.p-REQUIERE_REVISION,.p-ALERTA{background:var(--warn-soft);color:var(--warn)}.p-RECHAZADA,.p-BLOQUEO{background:var(--bad-soft);color:var(--bad)}
+  table.ctl{width:100%;border-collapse:collapse;font-size:12.5px}table.ctl td{padding:5px 12px;border-top:1px solid var(--line);vertical-align:top}table.ctl td:first-child{white-space:nowrap;font-family:ui-monospace,monospace;color:var(--muted)}
+  .confirm{margin:12px 0;padding:14px;border:2px solid var(--warn);background:var(--warn-soft);border-radius:10px}
+  .confirm h3{margin:0 0 6px;font-size:14px;color:var(--warn)}.confirm .det{font-size:13px;margin-bottom:10px}
+  .confirm textarea{width:100%;min-height:52px;border:1px solid var(--line);border-radius:6px;padding:8px;font:inherit;font-size:13px;background:var(--panel);color:var(--ink);margin-bottom:10px}
+  .confirm .acts{display:flex;gap:8px}.btn{border:0;border-radius:8px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer}
+  .btn.ok{background:var(--ok);color:#fff}.btn.no{background:transparent;border:1px solid var(--bad);color:var(--bad)}.btn:disabled{opacity:.5;cursor:default}
+  .decided{margin:8px 0;font-size:13px;color:var(--muted)}
+  footer{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line);padding:10px 16px 14px}
+  .chips{max-width:900px;margin:0 auto 8px;display:flex;gap:6px;flex-wrap:wrap}.chip{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:99px;padding:4px 10px;font:inherit;font-size:12.5px;cursor:pointer}.chip:hover{border-color:var(--brand)}
+  form{max-width:900px;margin:0 auto;display:flex;gap:8px}form input{flex:1;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;background:var(--bg);color:var(--ink)}
+  form button{background:var(--brand);color:#fff}.uso{max-width:900px;margin:6px auto 0;font-size:12px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+  .typing{color:var(--muted);font-size:13px;margin:10px 0}.empty{color:var(--muted);text-align:center;margin-top:60px}
+  @media (max-width:600px){header .sub{display:none}.bubble{max-width:95%}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Agente de Órdenes de Compra</h1><div class="sub">Solicitud → controles → confirmación humana → OC en SAP (simulado)</div></div>
+  <div class="spacer"></div>
+  <div class="modo" role="group" aria-label="Modo">
+    <button data-m="llm" class="on">Con LLM</button><button data-m="reglas">Sin LLM</button>
+  </div>
+</header>
+<main id="chat"><div class="empty" id="empty">Escribe una instrucción o usa un atajo de abajo.</div></main>
+<footer>
+  <div class="chips" id="chips"></div>
+  <form id="f"><input id="q" autocomplete="off" placeholder='Ej.: "procesa la solicitud sol-001"'><button class="btn" id="send">Enviar</button></form>
+  <div class="uso" id="uso"></div>
+</footer>
+<script>
+const $ = (s) => document.querySelector(s);
+const chat = $("#chat");
+let modo = "llm", messages = [], pendiente = null, ocupado = false;
+const total = { inputTokens: 0, outputTokens: 0, costoUSD: 0, llamadas: 0 };
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const md = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
+function add(html, cls = "") { $("#empty")?.remove(); const d = document.createElement("div"); d.className = cls; d.innerHTML = html; chat.appendChild(d); d.scrollIntoView({ block: "end", behavior: "smooth" }); return d; }
+const burbuja = (who, text) => add(`<div class="bubble">${md(text)}</div>`, `msg ${who}`);
+
+function toolCard(e) {
+  const r = e.resultado;
+  let extra = "";
+  if (r && r.controles) {
+    extra = `<table class="ctl">${r.controles.map((c) => `<tr><td>${c.id}</td><td><span class="pill p-${c.resultado}">${c.resultado}</span></td><td><b>${esc(c.control)}</b> — ${esc(c.detalle)}</td></tr>`).join("")}</table>`;
+  }
+  const badge = r?.decision ? `<span class="pill p-${r.decision}">${r.decision}</span>` : r?.numeroOC ? `<span class="pill p-OK">OC ${r.numeroOC}</span>` : e.error ? `<span class="pill p-BLOQUEO">error</span>` : "";
+  add(`<details class="tool ${e.error ? "err" : ""}" ${extra ? "open" : ""}><summary>🔧 <span class="name">${e.nombre}</span> ${badge}<span class="ms">${e.ms} ms</span></summary>${extra}<pre>entrada: ${esc(JSON.stringify(e.input, null, 2))}\n\n${e.error ? "error: " + esc(e.error) : "resultado: " + esc(JSON.stringify(r, null, 2))}</pre></details>`);
+}
+
+function confirmCard(p) {
+  const d = add(`<div class="confirm"><h3>⚠ Se requiere tu confirmación</h3>
+    <div class="det">El agente quiere ejecutar <b>${p.nombre}</b> con:<pre style="margin:6px 0;white-space:pre-wrap">${esc(JSON.stringify(p.input, null, 2))}</pre>Esta acción crea una orden de compra en SAP.</div>
+    <textarea placeholder="Comentario o justificación (obligatoria para compras retroactivas)"></textarea>
+    <div class="acts"><button class="btn ok">Aprobar y crear OC</button><button class="btn no">Rechazar</button></div></div>`);
+  const [ok, no] = d.querySelectorAll("button"), ta = d.querySelector("textarea");
+  const responder = (aprobado) => { ok.disabled = no.disabled = true; ta.disabled = true; enviar({ confirmacion: { toolUseId: p.toolUseId, aprobado, comentario: ta.value.trim() || undefined } }, aprobado ? "✅ Aprobado" : "❌ Rechazado"); };
+  ok.onclick = () => responder(true); no.onclick = () => responder(false);
+}
+
+function pintarUso(u, m) {
+  for (const k in total) total[k] += u[k] || 0;
+  $("#uso").innerHTML = `<span>Modo: <b>${m === "llm" ? "LLM" : "reglas (sin LLM)"}</b></span><span>Llamadas al modelo: ${total.llamadas}</span><span>Tokens: ${total.inputTokens.toLocaleString()} in / ${total.outputTokens.toLocaleString()} out</span><span>Costo estimado: US$ ${total.costoUSD.toFixed(4)}</span>`;
+}
+
+async function enviar(extra, etiqueta) {
+  if (ocupado) return; ocupado = true; $("#send").disabled = true;
+  if (etiqueta) burbuja("user", etiqueta);
+  const t = add("Pensando…", "typing");
+  try {
+    const res = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ modo, messages, pendiente, ...extra }) });
+    const data = await res.json();
+    t.remove();
+    if (!res.ok) { burbuja("bot", `⚠ ${data.error}${data.sugerencia ? "\n" + data.sugerencia : ""}`); return; }
+    if (data.modo !== modo && modo === "llm") burbuja("bot", "ℹ No hay API key configurada: respondo en modo sin LLM.");
+    for (const e of data.eventos) {
+      if (e.tipo === "texto") burbuja("bot", e.texto);
+      else if (e.tipo === "herramienta") toolCard(e);
+      else if (e.tipo === "confirmacion") add(`Confirmación humana: <b>${e.decision}</b> para ${e.nombre}`, "decided");
+    }
+    messages = data.messages; pendiente = data.pendiente;
+    if (pendiente) confirmCard(pendiente);
+    pintarUso(data.uso, data.modo);
+  } catch (err) { t.remove(); burbuja("bot", "⚠ Error de red: " + err.message); }
+  finally { ocupado = false; $("#send").disabled = false; }
+}
+
+$("#f").onsubmit = (ev) => { ev.preventDefault(); const v = $("#q").value.trim(); if (!v) return; $("#q").value = ""; if (pendiente) { burbuja("bot", "Primero aprueba o rechaza la acción pendiente."); return; } enviar({ mensaje: v }, v); };
+const atajos = ["¿Qué solicitudes hay?", "procesa sol-001", "procesa sol-002", "procesa sol-003", "procesa sol-004", "procesa sol-005", "procesa sol-006", "procesa todo y dame un resumen"];
+$("#chips").innerHTML = atajos.map((a) => `<button class="chip" type="button">${esc(a)}</button>`).join("");
+$("#chips").onclick = (e) => { if (e.target.classList.contains("chip")) { $("#q").value = e.target.textContent; $("#f").requestSubmit(); } };
+document.querySelectorAll(".modo button").forEach((b) => b.onclick = () => {
+  modo = b.dataset.m; messages = []; pendiente = null;
+  document.querySelectorAll(".modo button").forEach((x) => x.classList.toggle("on", x === b));
+  add(`Cambiado a modo <b>${modo === "llm" ? "con LLM" : "sin LLM (reglas)"}</b>. Conversación reiniciada.`, "decided");
+});
+fetch("/api/estado").then((r) => r.json()).then((s) => { if (!s.modoLlmDisponible) document.querySelector('[data-m="reglas"]').click(); }).catch(() => {});
+</script>
+</body>
+</html>

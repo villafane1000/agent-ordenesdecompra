@@ -1,0 +1,9 @@
+COTIZACIÓN No. Q-20260904
+Proveedor: Suministros del Caribe Ltda.
+NIT: 800987654-3
+Fecha: 2026-09-04
+
+Subtotal: $14.000.000
+IVA (19%): $2.660.000
+Total: $16.660.000
+Validez: 30 días

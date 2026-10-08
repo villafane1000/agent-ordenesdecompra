@@ -1,0 +1,17 @@
+[
+  {
+    "codigo": "N15",
+    "dias": 15,
+    "descripcion": "Neto 15 días"
+  },
+  {
+    "codigo": "N30",
+    "dias": 30,
+    "descripcion": "Neto 30 días"
+  },
+  {
+    "codigo": "N45",
+    "dias": 45,
+    "descripcion": "Neto 45 días"
+  }
+]
