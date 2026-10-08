@@ -78,16 +78,17 @@ export const crear: Herramienta<{ caso: typeof caso; payload: typeof paqueteArg;
       registrarControl(ctx.directory, { ...fila, resultado: "bloqueada", numero_oc: null });
       throw new Error(`No se crea la OC: ${v.bloqueos.map((b) => `${b.regla} ${b.detalle} Acción: ${b.accion ?? "-"}`).join(" | ")}`);
     }
-    const existente = await sap.buscarOrdenPorReferencia(id);
-    if (existente) {
-      registrarControl(ctx.directory, { ...fila, resultado: "idempotente", numero_oc: existente.numero_oc });
-      return { numero_oc: existente.numero_oc, fecha: null, idempotente: true, retroactiva: v.retroactiva };
-    }
     const requiere = v.confirmaciones.length > 0;
     const confirmada = a.confirmado === true && ctx.confirmacionUsuario !== false;
     if (requiere && !confirmada) {
       registrarControl(ctx.directory, { ...fila, resultado: "pendiente_confirmacion", numero_oc: null });
       throw new Error(`Requiere confirmación explícita del usuario antes de crear: ${v.confirmaciones.map((c) => `${c.regla} ${c.detalle}`).join(" | ")}`);
+    }
+    // La idempotencia se evalúa DESPUÉS de la confirmación: una excepción siempre se pregunta antes de cualquier acción.
+    const existente = await sap.buscarOrdenPorReferencia(id);
+    if (existente) {
+      registrarControl(ctx.directory, { ...fila, resultado: "idempotente", numero_oc: existente.numero_oc });
+      return { numero_oc: existente.numero_oc, fecha: null, idempotente: true, retroactiva: v.retroactiva };
     }
 
     const { orden } = construirPayload(paquete, v, requiere ? `usuario (sesión ${ctx.sessionId})` : null);

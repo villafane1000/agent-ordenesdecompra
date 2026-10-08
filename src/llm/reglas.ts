@@ -46,7 +46,7 @@ export class ReglasAdapter implements AdaptadorLLM {
     const c = res.get("oc_crear")!;
     const orden = (res.get("oc_construir_payload")?.data as { orden?: Orden } | undefined)?.orden;
     const partes: string[] = [];
-    if (c.ok) partes.push(`**${caso}: OC creada sin excepciones.**`);
+    if (c.ok) partes.push(c.data!.idempotente ? `**${caso}: la OC ya existía para esta solicitud (idempotencia).**` : `**${caso}: OC creada sin excepciones.**`);
     else if (!v.apta) partes.push(`**${caso}: no se crea la OC** (tiene bloqueos).`);
     else partes.push(`**${caso}: la OC está lista, pero requiere tu confirmación. Todavía NO se ha creado.**`);
     if (orden) partes.push("**OC como quedaría en SAP**\n" + tablaOrden(orden));
