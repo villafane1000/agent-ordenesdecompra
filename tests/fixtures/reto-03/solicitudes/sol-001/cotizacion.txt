@@ -1,9 +1,0 @@
-COTIZACIÓN No. Q-20260830
-Proveedor: Tecnología Andina S.A.S.
-NIT: 900123456-1
-Fecha: 2026-08-30
-
-Subtotal: $8.000.000
-IVA (19%): $1.520.000
-Total: $9.520.000
-Validez: 30 días

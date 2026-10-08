@@ -1,9 +1,15 @@
-COTIZACIÓN No. Q-20260830
-Proveedor: Tecnología Andina S.A.S.
-NIT: 900123456-1
-Fecha: 2026-08-30
+COTIZACIÓN COT-TS-2026-0451
+Fecha: 2026-08-18
+Proveedor: TecnoSuministros S.A.S.
+NIT: 900.555.111-2
+Cliente: Periferia IT Group S.A.S. - NIT 900.123.456-7
 
-Subtotal: $8.000.000
-IVA (19%): $1.520.000
-Total: $9.520.000
-Validez: 30 días
+ÍTEMS
+1. Licencia antivirus corporativo 12 meses | Cantidad: 120 | Precio unitario (IVA incl.): COP 95.000 | Subtotal: COP 11.400.000
+
+Base gravable: COP 9.579.832
+IVA 19%: COP 1.820.168
+TOTAL (IVA incluido): COP 11.400.000
+
+Validez de la oferta: 30 días
+Condiciones de pago: según acuerdo comercial vigente.

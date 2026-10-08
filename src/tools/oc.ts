@@ -1,88 +1,143 @@
-// Herramientas del agente, tipadas con zod. Son la única forma en que el agente toca datos o SAP.
-// Las reglas viven en src/domain; aquí solo se exponen. demo.ts las llama directo, sin LLM.
+// Herramientas del agente de órdenes de compra. Cada export → nombre `oc_<export>` para el modelo.
+// Son la ÚNICA fuente de valores que el agente puede afirmar (CA2) y no dependen del servidor HTTP.
+import { join } from "node:path";
+import { PDFDocument, StandardFonts } from "pdf-lib";
 import { z } from "zod";
-import { leerCaso, listarCasos } from "../data/repo.js";
-import { evaluarSolicitud } from "../domain/controles.js";
-import { extraerCotizacion, extraerFactura } from "../domain/extraccion.js";
-import { sap } from "../sap/sap.js";
+import { leerMaestros, leerPaquete, listarCasos } from "../data/fixtures.js";
+import { construirPayload, sha256, textoEvidencia } from "../domain/payload.js";
+import { validar as validarReglas } from "../domain/reglas.js";
+import type { OrdenCompra } from "../domain/tipos.js";
+import { dirOut, escribir, registrarControl } from "../out.js";
+import { SapMock } from "../sap/mock.js";
+import type { SapAdapter } from "../sap/adapter.js";
+import { seguro, type Herramienta, type ToolCtx } from "./contrato.js";
 
-export interface Herramienta<S extends z.ZodType = z.ZodType> {
-  name: string;
-  description: string;
-  input: S;
-  /** Si es true, el runtime NUNCA la ejecuta sin aprobación humana explícita. */
-  requiereConfirmacion?: boolean;
-  run: (args: z.infer<S>) => Promise<unknown>;
+const caso = z.string().regex(/^[\w-]+$/).describe("Nombre de la carpeta del caso en fixtures/reto-03/solicitudes/, p. ej. sol-001");
+const paqueteArg = z.unknown().optional().describe("Paquete devuelto por oc_leer_paquete. Opcional: el servidor lo relee de la fuente para que nadie pueda alterarlo");
+
+/** Fábrica del adaptador SAP: hoy el mock sobre archivos; en producción, el adaptador real (ver SOLUCION.md). */
+export let crearSap = (ctx: ToolCtx): SapAdapter => new SapMock(ctx.directory);
+
+/** Recalcula todo desde la fuente: el modelo nunca aporta valores, solo el nombre del caso. */
+function evaluar(ctx: ToolCtx, c: string) {
+  const paquete = leerPaquete(ctx.directory, c);
+  const validacion = validarReglas(paquete, leerMaestros(ctx.directory));
+  return { paquete, validacion };
 }
-const def = <S extends z.ZodType>(h: Herramienta<S>) => h;
-const solId = z.string().regex(/^[\w-]+$/).describe("Identificador de la solicitud, p. ej. sol-001");
 
-export const listarSolicitudes = def({
-  name: "listar_solicitudes",
-  description: "Lista las solicitudes de compra pendientes en la bandeja.",
-  input: z.object({}),
-  run: async () => listarCasos().map((id) => {
-    const c = leerCaso(id);
-    return { id, asunto: c.correo.asunto, solicitante: c.solicitud.solicitante, monto: c.solicitud.monto, tieneFactura: !!c.facturaTxt };
+export const listar_casos: Herramienta<{}> = {
+  description: "Lista los casos (solicitudes de compra) disponibles para procesar.",
+  args: {},
+  execute: (_a, ctx) => seguro(() => listarCasos(ctx.directory)),
+};
+
+export const leer_paquete: Herramienta<{ caso: typeof caso }> = {
+  description: "Lee y normaliza el paquete de un caso: correo, solicitud, cotización, aprobación y factura (si existe); los adjuntos ausentes vienen en null y en `faltantes`.",
+  args: { caso },
+  execute: (a, ctx) => seguro(() => {
+    const p = leerPaquete(ctx.directory, a.caso);
+    // El texto completo de cotización y aprobación no se envía al modelo (ahorra tokens; los datos ya vienen extraídos)
+    return { ...p, cotizacion: p.cotizacion && { ...p.cotizacion, texto: `(${p.cotizacion.texto.length} caracteres)` }, aprobacion: p.aprobacion && { ...p.aprobacion } };
   }),
-});
+};
 
-export const leerSolicitud = def({
-  name: "leer_solicitud",
-  description: "Lee el correo, la solicitud, la aprobación y extrae de forma determinista los datos de la cotización y, si existe, de la factura.",
-  input: z.object({ solicitudId: solId }),
-  run: async ({ solicitudId }) => {
-    const c = leerCaso(solicitudId);
-    return { correo: c.correo, solicitud: c.solicitud, aprobacion: c.aprobacion, cotizacion: extraerCotizacion(c.cotizacionTxt), factura: c.facturaTxt ? extraerFactura(c.facturaTxt) : null };
-  },
-});
+export const validar: Herramienta<{ caso: typeof caso; paquete: typeof paqueteArg }> = {
+  description: "Aplica las reglas de control RC1–RC10 y devuelve { apta, bloqueos[], confirmaciones[], derivados, retroactiva }.",
+  args: { caso, paquete: paqueteArg },
+  execute: (a, ctx) => seguro(() => evaluar(ctx, a.caso).validacion),
+};
 
-export const validarSolicitud = def({
-  name: "validar_solicitud",
-  description: "Ejecuta la matriz completa de controles (proveedor, centro de costo, aprobación, tope, montos, IVA, condición de pago, retroactividad) y devuelve la decisión: LISTA_PARA_OC, REQUIERE_REVISION o RECHAZADA.",
-  input: z.object({ solicitudId: solId }),
-  run: async ({ solicitudId }) => evaluarSolicitud(leerCaso(solicitudId)),
-});
+export const construir_payload: Herramienta<{ caso: typeof caso; paquete: typeof paqueteArg; derivados: typeof paqueteArg }> = {
+  description: "Construye la orden de compra exactamente como quedaría en SAP (validada con zod) y guarda la trazabilidad de cada valor.",
+  args: { caso, paquete: paqueteArg, derivados: paqueteArg },
+  execute: (a, ctx) => seguro(() => {
+    const { paquete, validacion } = evaluar(ctx, a.caso);
+    const { orden, trazabilidad } = construirPayload(paquete, validacion);
+    const ruta = join(dirOut(ctx.directory), a.caso, "trazabilidad.json");
+    escribir(ruta, JSON.stringify(trazabilidad, null, 2));
+    return { orden, trazabilidad: rel(ctx, ruta), confirmaciones_pendientes: validacion.confirmaciones.map((c) => c.regla) };
+  }),
+};
 
-export const crearOcSap = def({
-  name: "crear_oc_sap",
-  description: "Crea la orden de compra en SAP. REQUIERE confirmación humana: el sistema pausará y pedirá aprobación al usuario. Solo llámala si validar_solicitud no dio RECHAZADA. Para compras retroactivas es obligatorio enviar justificacionRetroactiva.",
-  input: z.object({ solicitudId: solId, justificacionRetroactiva: z.string().min(10).optional().describe("Obligatoria si la compra es retroactiva") }),
-  requiereConfirmacion: true,
-  run: async ({ solicitudId, justificacionRetroactiva }) => {
-    // Defensa en profundidad: se re-evalúa aquí; nunca se confía en lo que diga el modelo.
-    const caso = leerCaso(solicitudId);
-    const ev = evaluarSolicitud(caso);
-    if (ev.decision === "RECHAZADA") return { creada: false, motivo: "La solicitud tiene controles en BLOQUEO", controles: ev.controles.filter((c) => c.resultado === "BLOQUEO") };
-    if (ev.retroactiva && !justificacionRetroactiva) return { creada: false, motivo: "Compra retroactiva: falta justificación" };
-    const s = caso.solicitud;
-    const { oc, duplicada } = await sap.crearOrdenCompra({
-      claveIdempotencia: `OC:${solicitudId}`,
-      nitProveedor: s.nitProveedor,
-      condicionPago: ev.valores.condicionPago,
-      moneda: "COP",
-      referencia: solicitudId,
-      marcaRetroactiva: ev.retroactiva,
-      aprobadoPor: caso.aprobacion?.aprobador ?? "",
-      posiciones: [{ descripcion: s.descripcion, cantidad: 1, valorUnitario: ev.valores.subtotal, indicadorIva: ev.valores.indicadorIva, centroCosto: s.centroCosto }],
-    });
-    return { creada: !duplicada, duplicada, numeroOC: oc.numero, totalAntesIva: oc.total, totalConIva: ev.valores.total, retroactiva: ev.retroactiva, justificacionRetroactiva: justificacionRetroactiva ?? null };
-  },
-});
+export const generar_evidencia: Herramienta<{ caso: typeof caso }> = {
+  description: "Genera la evidencia del correo de aprobación (aprobacion.txt y aprobacion.pdf) con su sha256.",
+  args: { caso },
+  execute: (a, ctx) => seguro(async () => evidencia(ctx, a.caso)),
+};
 
-export const consultarOc = def({
-  name: "consultar_oc",
-  description: "Consulta una orden de compra en SAP por número o por id de solicitud.",
-  input: z.object({ consulta: z.string() }),
-  run: async ({ consulta }) => (await sap.consultarOrdenCompra(consulta)) ?? { encontrada: false },
-});
+export const crear: Herramienta<{ caso: typeof caso; payload: typeof paqueteArg; confirmado: z.ZodOptional<z.ZodBoolean> }> = {
+  description: "Crea la OC en SAP. Solo si no hay bloqueos y, si hay confirmaciones, con confirmado=true DESPUÉS de que el usuario confirme explícitamente. Es idempotente por solicitud.",
+  args: { caso, payload: paqueteArg, confirmado: z.boolean().optional().describe("true solo si el usuario confirmó explícitamente en su último mensaje") },
+  execute: (a, ctx) => seguro(async () => {
+    const { paquete, validacion: v } = evaluar(ctx, a.caso);
+    const id = paquete.solicitud.solicitud_id;
+    const fila = { solicitud_id: id, retroactiva: v.retroactiva, bloqueos: v.bloqueos.map((b) => `${b.regla}: ${b.detalle}`), confirmaciones: v.confirmaciones.map((c) => `${c.regla}: ${c.detalle}`) };
+    const sap = crearSap(ctx);
 
-export const herramientas: Herramienta[] = [listarSolicitudes, leerSolicitud, validarSolicitud, crearOcSap, consultarOc] as Herramienta[];
-export const porNombre = new Map(herramientas.map((h) => [h.name, h]));
+    if (!v.apta) {
+      registrarControl(ctx.directory, { ...fila, resultado: "bloqueada", numero_oc: null });
+      throw new Error(`No se crea la OC: ${v.bloqueos.map((b) => `${b.regla} ${b.detalle} Acción: ${b.accion ?? "-"}`).join(" | ")}`);
+    }
+    const existente = await sap.buscarOrdenPorReferencia(id);
+    if (existente) {
+      registrarControl(ctx.directory, { ...fila, resultado: "idempotente", numero_oc: existente.numero_oc });
+      return { numero_oc: existente.numero_oc, fecha: null, idempotente: true, retroactiva: v.retroactiva };
+    }
+    const requiere = v.confirmaciones.length > 0;
+    const confirmada = a.confirmado === true && ctx.confirmacionUsuario !== false;
+    if (requiere && !confirmada) {
+      registrarControl(ctx.directory, { ...fila, resultado: "pendiente_confirmacion", numero_oc: null });
+      throw new Error(`Requiere confirmación explícita del usuario antes de crear: ${v.confirmaciones.map((c) => `${c.regla} ${c.detalle}`).join(" | ")}`);
+    }
 
-/** Valida la entrada con zod y ejecuta. Lanza si la entrada es inválida. */
-export async function ejecutar(nombre: string, args: unknown) {
-  const h = porNombre.get(nombre);
-  if (!h) throw new Error(`Herramienta desconocida: ${nombre}`);
-  return h.run(h.input.parse(args));
+    const { orden } = construirPayload(paquete, v, requiere ? `usuario (sesión ${ctx.sessionId})` : null);
+    if (a.payload !== undefined && !mismoPayload(a.payload, orden)) throw new Error("El payload recibido no coincide con el validado por las reglas; se rechaza para evitar valores alterados. Reconstruye con oc_construir_payload.");
+    const ev = await evidencia(ctx, a.caso);
+    const r = await sap.crearOrden(orden);
+    registrarControl(ctx.directory, { ...fila, resultado: "creada", numero_oc: r.numero_oc });
+    return { numero_oc: r.numero_oc, fecha: r.fecha, idempotente: false, retroactiva: v.retroactiva, evidencia: ev.ruta, evidencia_pdf: ev.ruta_pdf };
+  }),
+};
+
+// ── utilidades ─────────────────────────────────────────────────────
+const rel = (ctx: ToolCtx, ruta: string) => ruta.startsWith(ctx.directory) ? ruta.slice(ctx.directory.length + 1) : ruta;
+
+/** Compara lo que importa (montos, proveedor, cuentas); ignora quién confirmó las excepciones. */
+function mismoPayload(recibido: unknown, real: OrdenCompra): boolean {
+  const limpio = (o: OrdenCompra) => JSON.stringify({ ...o, excepciones: o.excepciones.map((e) => e.codigo) });
+  try {
+    const r = recibido as OrdenCompra;
+    if (!r || typeof r !== "object" || !r.posiciones) return true; // payload resumido o vacío: se usa el validado
+    return limpio(r) === limpio(real);
+  } catch { return false; }
+}
+
+async function evidencia(ctx: ToolCtx, c: string) {
+  const p = leerPaquete(ctx.directory, c);
+  const texto = textoEvidencia(p);
+  const hash = sha256(texto);
+  const dir = join(dirOut(ctx.directory), c);
+  const ruta = join(dir, "aprobacion.txt");
+  escribir(ruta, `${texto}\nsha256: ${hash}\n`);
+  const rutaPdf = join(dir, "aprobacion.pdf");
+  escribir(rutaPdf, await pdf(texto, hash));
+  return { ruta: rel(ctx, ruta), ruta_pdf: rel(ctx, rutaPdf), sha256: hash };
+}
+
+async function pdf(texto: string, hash: string): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const fuente = await doc.embedFont(StandardFonts.Helvetica);
+  const latin1 = (s: string) => s.replace(/[^\x20-\xFF]/g, "?");
+  let page = doc.addPage([595, 842]);
+  let y = 800;
+  for (const l of [...texto.split("\n"), "", `sha256: ${hash}`]) {
+    for (const trozo of (latin1(l).match(/.{1,95}/g) ?? [""])) {
+      if (y < 50) { page = doc.addPage([595, 842]); y = 800; }
+      page.drawText(trozo, { x: 50, y, size: 10, font: fuente });
+      y -= 14;
+    }
+  }
+  doc.setTitle("Evidencia de aprobación");
+  doc.setCreationDate(new Date(0)); doc.setModificationDate(new Date(0)); // determinismo
+  return doc.save();
 }

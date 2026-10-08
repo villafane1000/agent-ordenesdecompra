@@ -1,32 +1,50 @@
-// Script de verificación: procesa TODOS los casos llamando a las herramientas directamente, sin LLM.
-// Uso: bun demo.ts   |   npx tsx demo.ts   (agrega --json para salida en JSON)
-import { ejecutar } from "./src/tools/oc.js";
-import type { Evaluacion } from "./src/domain/controles.js";
+// Verificación sin modelo (PRD 6.6): procesa los 6 casos llamando directamente a las herramientas.
+// Uso: bun run demo.ts   ·   npx tsx demo.ts      (no requiere ninguna clave)
+import { fileURLToPath } from "node:url";
+import { herramientas } from "./src/tools/index.js";
+import { invocar, type ToolCtx } from "./src/tools/contrato.js";
+import { dirOut, limpiarOut } from "./src/out.js";
 
-const comoJson = process.argv.includes("--json");
-const icon = { OK: "✓", ALERTA: "!", BLOQUEO: "✗" } as const;
-const resumen: Array<Record<string, unknown>> = [];
+const root = fileURLToPath(new URL(".", import.meta.url)).replace(/\/$/, "");
+limpiarOut(root); // determinismo: out/ se limpia al inicio
+const ctx: ToolCtx = { directory: root, sessionId: "demo", confirmacionUsuario: false };
 
-const lista = (await ejecutar("listar_solicitudes", {})) as Array<{ id: string; asunto: string }>;
-for (const { id, asunto } of lista) {
-  const ev = (await ejecutar("validar_solicitud", { solicitudId: id })) as Evaluacion;
-  let oc: Record<string, unknown> | null = null;
-  if (ev.decision !== "RECHAZADA") {
-    // En la demo la "confirmación humana" se simula como aprobada; las retroactivas llevan justificación.
-    oc = (await ejecutar("crear_oc_sap", {
-      solicitudId: id,
-      ...(ev.retroactiva ? { justificacionRetroactiva: "Regularización aprobada por el líder (demo)" } : {}),
-    })) as Record<string, unknown>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type R = { ok: boolean; data?: any; error?: string };
+const call = async (nombre: string, args: object, c: ToolCtx = ctx): Promise<R> => JSON.parse(await invocar(herramientas[nombre], args, c));
+const linea = "─".repeat(78);
+
+async function procesar(caso: string, confirmado = false) {
+  const paquete = await call("oc_leer_paquete", { caso });
+  if (!paquete.ok) return console.log(`  ✗ No se pudo leer el paquete: ${paquete.error}`);
+  const v = (await call("oc_validar", { caso, paquete: paquete.data })).data;
+  console.log(`  apta: ${v.apta}   retroactiva: ${v.retroactiva}`);
+  for (const b of v.bloqueos) console.log(`  ✗ BLOQUEO ${b.regla}: ${b.detalle}\n      → ${b.accion}`);
+  for (const c of v.confirmaciones) console.log(`  ? CONFIRMAR ${c.regla}: ${c.detalle}`);
+  for (const [k, d] of Object.entries(v.derivados as Record<string, { valor?: string; fuente?: string }>)) if (d?.fuente) console.log(`  ↳ derivado ${k} = ${d.valor} (${d.fuente})`);
+  if (v.apta) {
+    const p = await call("oc_construir_payload", { caso, paquete: paquete.data, derivados: v.derivados });
+    if (p.ok) console.log(`  payload OK (zod) · trazabilidad: ${p.data.trazabilidad}`);
+    const e = await call("oc_generar_evidencia", { caso });
+    if (e.ok) console.log(`  evidencia: ${e.data.ruta} · ${e.data.ruta_pdf} · sha256 ${e.data.sha256.slice(0, 16)}…`);
   }
-  // Idempotencia: un segundo intento no debe crear otra OC
-  const reintento = oc ? ((await ejecutar("crear_oc_sap", { solicitudId: id, justificacionRetroactiva: "Reintento de prueba de idempotencia" })) as Record<string, unknown>) : null;
+  const c = await call("oc_crear", { caso, confirmado }, { ...ctx, confirmacionUsuario: confirmado });
+  console.log(c.ok ? `  ⇒ OC ${c.data.numero_oc}${c.data.idempotente ? " (idempotente: ya existía)" : ""}` : `  ⇒ SIN OC: ${c.error}`);
+  return c;
+}
 
-  resumen.push({ id, decision: ev.decision, retroactiva: ev.retroactiva, oc: oc?.numeroOC ?? null, idempotente: reintento ? reintento.duplicada === true : null });
-  if (!comoJson) {
-    console.log(`\n■ ${id} — ${asunto}\n  Decisión: ${ev.decision}${ev.retroactiva ? "  [RETROACTIVA]" : ""}`);
-    for (const c of ev.controles) console.log(`   ${icon[c.resultado]} ${c.id} ${c.control.padEnd(26)} ${c.detalle}`);
-    console.log(oc?.numeroOC ? `  → OC ${oc.numeroOC} creada (total con IVA $${Number(oc.totalConIva).toLocaleString("es-CO")})` : "  → Sin OC");
+const casos = JSON.parse(await invocar(herramientas.oc_listar_casos, {}, ctx)).data as string[];
+console.log(`${linea}\nVerificación sin LLM · ${casos.length} casos · salida en ${dirOut(root)}\n${linea}`);
+for (const caso of casos) { console.log(`\n■ ${caso}`); await procesar(caso); }
+
+console.log(`\n${linea}\nIdempotencia: sol-001 por segunda vez\n${linea}`);
+await procesar("sol-001");
+
+for (const caso of casos.filter((c) => c !== "sol-001")) {
+  const v = (await call("oc_validar", { caso })).data;
+  if (v?.apta && v.confirmaciones.length) {
+    console.log(`\n${linea}\nConfirmación explícita del usuario para ${caso}: "confirmo"\n${linea}`);
+    await procesar(caso, true);
   }
 }
-if (comoJson) console.log(JSON.stringify(resumen, null, 2));
-else { console.log("\nResumen"); console.table(resumen); }
+console.log(`\n${linea}\nLog de control: ${dirOut(root)}/control.csv · SAP simulado: ${dirOut(root)}/sap/ordenes.jsonl\n${linea}`);

@@ -1,30 +1,42 @@
 [
   {
-    "nit": "900123456-1",
-    "razonSocial": "Tecnología Andina S.A.S.",
-    "estado": "ACTIVO",
-    "indicadorIvaDefault": "V19",
-    "condicionPagoDefault": "N30"
+    "codigo_sap": "100234",
+    "nit": "900555111",
+    "nombre": "TecnoSuministros S.A.S.",
+    "condiciones_pago_default": "Z030",
+    "indicador_iva_default": "C1",
+    "activo": true
   },
   {
-    "nit": "800987654-3",
-    "razonSocial": "Suministros del Caribe Ltda.",
-    "estado": "ACTIVO",
-    "indicadorIvaDefault": "V19",
-    "condicionPagoDefault": "N45"
+    "codigo_sap": "100310",
+    "nit": "901222333",
+    "nombre": "Cloud Andina S.A.S.",
+    "condiciones_pago_default": "Z000",
+    "indicador_iva_default": "C1",
+    "activo": true
   },
   {
-    "nit": "901555222-7",
-    "razonSocial": "Servicios Express S.A.S.",
-    "estado": "BLOQUEADO",
-    "indicadorIvaDefault": "V19",
-    "condicionPagoDefault": "N30"
+    "codigo_sap": "100118",
+    "nit": "800444555",
+    "nombre": "Papelería Central Ltda.",
+    "condiciones_pago_default": "Z015",
+    "indicador_iva_default": "C1",
+    "activo": true
   },
   {
-    "nit": "830111999-0",
-    "razonSocial": "Capacitación Pro S.A.S.",
-    "estado": "ACTIVO",
-    "indicadorIvaDefault": "V0",
-    "condicionPagoDefault": "N15"
+    "codigo_sap": "100150",
+    "nit": "830111222",
+    "nombre": "Mobiliario Andino S.A.",
+    "condiciones_pago_default": "Z030",
+    "indicador_iva_default": "C1",
+    "activo": true
+  },
+  {
+    "codigo_sap": "100402",
+    "nit": "901777888",
+    "nombre": "Consultores Ágiles S.A.S.",
+    "condiciones_pago_default": "Z030",
+    "indicador_iva_default": "C1",
+    "activo": false
   }
 ]

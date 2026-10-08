@@ -1,11 +1,13 @@
 {
-  "id": "sol-006",
-  "solicitante": "pedro.lopez@periferia.test",
-  "nitProveedor": "800987654-3",
-  "centroCosto": "CC-1001",
-  "subarea": "Desarrollo",
-  "descripcion": "Insumos de oficina",
-  "monto": 2000000,
-  "indicadorIva": "V5",
-  "fecha": "2026-09-20"
+  "solicitud_id": "SOL-2026-006",
+  "solicitante": "Andrés Beltrán",
+  "proveedor_nombre": "TecnoSuministros S.A.S.",
+  "descripcion": "Diademas con micrófono para la mesa de soporte",
+  "centro_costo": "CC-1010",
+  "subarea": "Soporte",
+  "cantidad": 30,
+  "valor_unitario": 180000,
+  "valor_total": 5400000,
+  "moneda": "COP",
+  "fecha_solicitud": "2026-08-29"
 }

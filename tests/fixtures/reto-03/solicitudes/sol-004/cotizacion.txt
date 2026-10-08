@@ -1,9 +1,0 @@
-COTIZACIÓN No. Q-20260907
-Proveedor: Tecnología Andina S.A.S.
-NIT: 900123456-1
-Fecha: 2026-09-07
-
-Subtotal: $13.500.000
-IVA (19%): $2.565.000
-Total: $16.065.000
-Validez: 30 días

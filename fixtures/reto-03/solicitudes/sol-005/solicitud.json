@@ -1,12 +1,16 @@
 {
-  "id": "sol-005",
-  "solicitante": "luis.vega@periferia.test",
-  "nitProveedor": "830111999-0",
-  "centroCosto": "CC-3001",
-  "subarea": "Formación",
-  "descripcion": "Curso liderazgo (ya dictado)",
-  "monto": 3000000,
-  "indicadorIva": "V0",
-  "condicionPago": "N15",
-  "fecha": "2026-09-15"
+  "solicitud_id": "SOL-2026-005",
+  "solicitante": "Camila Ortiz",
+  "proveedor_nombre": "Papelería Central Ltda.",
+  "proveedor_nit": "800444555",
+  "descripcion": "Papelería y tóner para el trimestre",
+  "centro_costo": "CC-2020",
+  "subarea": "Compras",
+  "cantidad": 1,
+  "valor_unitario": 3200000,
+  "valor_total": 3200000,
+  "moneda": "COP",
+  "indicador_iva": "C1",
+  "condiciones_pago": "Z015",
+  "fecha_solicitud": "2026-08-27"
 }
