@@ -6,7 +6,7 @@ const ChatBody = z.object({
   sessionId: z.string().max(64).optional(),
   message: z.string().min(1).max(4000),
   modo: z.enum(["llm", "reglas"]).optional(),
-  historial: z.array(z.unknown()).max(400).optional(),
+  historial: z.array(z.unknown()).max(600).optional(),
 });
 
 export async function postChat(req: Request): Promise<Response> {

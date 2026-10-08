@@ -23,7 +23,7 @@ export function systemPrompt(): string {
 
 export interface ToolCallVisible { nombre: string; args: unknown; ok: boolean; resumen: string; resultado: unknown; ms: number }
 export interface Sesion { id: string; mensajes: Mensaje[]; visibles: Array<{ rol: "user" | "assistant"; texto: string; toolCalls?: ToolCallVisible[]; needsConfirmation?: boolean }>; tokens: { entrada: number; salida: number } }
-export interface RespuestaChat { sessionId: string; reply: string; toolCalls: ToolCallVisible[]; needsConfirmation: boolean; modo: string; uso: { entrada: number; salida: number; costoUSD: number; tokensSesion: number } }
+export interface RespuestaChat { sessionId: string; historial: Mensaje[]; reply: string; toolCalls: ToolCallVisible[]; needsConfirmation: boolean; modo: string; uso: { entrada: number; salida: number; costoUSD: number; tokensSesion: number } }
 
 // ── Sesiones: memoria + archivo en out/sessions ──
 const sesiones = new Map<string, Sesion>();
@@ -113,7 +113,7 @@ export async function chat(entrada: { sessionId?: string; message: string; modo?
   guardar(sesion);
   registrarLog(ROOT, { sessionId: id, tipo: "turno", modo: llm.proveedor, uso, needsConfirmation: confirmacionPendiente });
   return {
-    sessionId: id, reply, toolCalls, needsConfirmation: confirmacionPendiente, modo: llm.proveedor,
+    sessionId: id, historial: sesion.mensajes, reply, toolCalls, needsConfirmation: confirmacionPendiente, modo: llm.proveedor,
     uso: { ...uso, costoUSD: +((uso.entrada * PRECIO_IN + uso.salida * PRECIO_OUT) / 1e6).toFixed(5), tokensSesion: sesion.tokens.entrada + sesion.tokens.salida },
   };
 }

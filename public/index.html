@@ -50,10 +50,10 @@
 <script>
 const $ = (s) => document.querySelector(s);
 const chat = $("#chat");
-let modo = "llm", ocupado = false, sessionId = null;
+let modo = "llm", ocupado = false, sessionId = null, historial = [];
 const total = { entrada: 0, salida: 0, costoUSD: 0 };
 const store = { get(k) { try { return sessionStorage.getItem(k); } catch { return null; } }, set(k, v) { try { sessionStorage.setItem(k, v); } catch {} } };
-sessionId = store.get("sid");
+sessionId = store.get("sid") || null;
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 function md(s) {
@@ -84,10 +84,10 @@ async function enviar(texto) {
   burbuja("user", texto);
   const t = add("Pensando…", "typing");
   try {
-    const res = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sessionId, message: texto, modo }) });
+    const res = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sessionId, message: texto, modo, historial }) });
     const d = await res.json(); t.remove();
     if (!res.ok || d.ok === false) { burbuja("bot", "⚠ " + (d.error || "Error")); return; }
-    sessionId = d.sessionId; store.set("sid", sessionId);
+    sessionId = d.sessionId; store.set("sid", sessionId); historial = d.historial || [];
     for (const tc of d.toolCalls) toolCard(tc);
     burbuja("bot", d.reply, d.needsConfirmation ? "confirm" : "");
     if (d.needsConfirmation) banner();
@@ -102,7 +102,7 @@ const atajos = ["¿Qué solicitudes hay?", "Procesa la solicitud sol-001", "Proc
 $("#chips").innerHTML = atajos.map((a) => `<button class="chip" type="button" title="${esc(a)}">${esc(a.length > 40 ? a.slice(0, 38) + "…" : a)}</button>`).join("");
 $("#chips").onclick = (e) => { const b = e.target.closest(".chip"); if (b) enviar(b.title); };
 document.querySelectorAll(".modo button").forEach((b) => b.onclick = () => { modo = b.dataset.m; document.querySelectorAll(".modo button").forEach((x) => x.classList.toggle("on", x === b)); add(`Modo <b>${modo === "llm" ? "con LLM" : "sin LLM (reglas)"}</b>.`, "typing"); });
-$("#nueva").onclick = () => { sessionId = null; store.set("sid", ""); chat.innerHTML = '<div class="empty" id="empty">Sesión nueva.</div>'; };
+$("#nueva").onclick = () => { sessionId = null; historial = []; store.set("sid", ""); chat.innerHTML = '<div class="empty" id="empty">Sesión nueva.</div>'; };
 fetch("/api/health").then((r) => r.json()).then((h) => { if (h.provider === "reglas") document.querySelector('[data-m="reglas"]').click(); }).catch(() => {});
 </script>
 </body>
