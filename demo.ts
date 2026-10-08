@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { herramientas } from "./src/tools/index.js";
 import { invocar, type ToolCtx } from "./src/tools/contrato.js";
 import { dirOut, limpiarOut } from "./src/out.js";
+import { verificarModulo } from "./scripts/modulo.js";
 
 const root = fileURLToPath(new URL(".", import.meta.url)).replace(/\/$/, "");
 limpiarOut(root); // determinismo: out/ se limpia al inicio
@@ -52,3 +53,8 @@ for (const caso of casos.filter((c) => c !== "sol-001")) {
   }
 }
 console.log(`\n${linea}\nLog de control: ${dirOut(root)}/control.csv · SAP simulado: ${dirOut(root)}/sap/ordenes.jsonl\n${linea}`);
+
+// Bonus 9.4: el módulo reutilizable debe usar exactamente las mismas piezas que la app.
+const divergencias = await verificarModulo();
+console.log(divergencias.length ? `✗ modulo/ divergente: ${divergencias.join("; ")}` : "✓ modulo/: agent.md, SKILL.md y tools/oc.ts son las mismas piezas que usa la aplicación.");
+if (divergencias.length) process.exitCode = 1;

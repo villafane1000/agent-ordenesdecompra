@@ -4,11 +4,11 @@ Empaquetado para integrarse a otras plataformas de agentes sin depender del serv
 
 | Pieza | Archivo | Es la misma que usa la app |
 |---|---|---|
-| Agente (frontmatter + system prompt) | `agent.md` | Enlace simbólico a `agent/prompt.md` |
-| Herramientas | `tools/oc.ts` | Re-export de `src/tools/oc.ts` |
-| Skill (conocimiento del proceso) | `skill/ordenes-compra/SKILL.md` | Enlace simbólico a `src/knowledge/ordenes-compra.md` |
+| Agente (frontmatter + system prompt) | `agent.md` | Idéntico byte a byte a `agent/prompt.md`, que es el que lee el runtime |
+| Herramientas | `tools/oc.ts` | Re-export de `src/tools/oc.ts`: son los mismos objetos, no una copia |
+| Skill (conocimiento del proceso) | `skill/ordenes-compra/SKILL.md` | Idéntico byte a byte a `src/knowledge/ordenes-compra.md`, que es el que lee el runtime |
 
-Al no haber copias, no pueden divergir: el runtime de la app lee exactamente estos archivos (quitando el frontmatter).
+**Garantía de no divergencia:** `npm run modulo` (y el final de `demo.ts`) verifica que los dos Markdown sean idénticos a los de la app y que cada herramienta del módulo sea el mismo objeto que usa la app; si algo difiere, termina con error. `npm run modulo -- --sync` los vuelve a copiar. Se usan archivos reales (no enlaces simbólicos) para que se lean bien en GitHub y en un ZIP.
 
 Uso de las herramientas desde otra plataforma:
 

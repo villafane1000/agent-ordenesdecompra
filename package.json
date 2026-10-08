@@ -5,7 +5,8 @@
   "scripts": {
     "demo": "tsx demo.ts",
     "dev": "tsx scripts/dev-server.ts",
-    "typecheck": "tsc -p ."
+    "typecheck": "tsc -p .",
+    "modulo": "tsx scripts/modulo.ts"
   },
   "keywords": [],
   "author": "",

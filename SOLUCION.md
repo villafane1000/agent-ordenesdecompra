@@ -178,7 +178,7 @@ Implementada en `src/domain/reglas.ts` como función pura `validar(paquete, maes
 | HU-5 Crear OC | **Hecho** | Secuencial desde 4500000001, `out/sap/ordenes.jsonl`, idempotencia, fila en `control.csv` por intento (creada, idempotente, bloqueada, pendiente) |
 | HU-6 Errores | **Hecho** | `{ok:false, error}` legible; JSON malformado, monto no numérico y paquete incompleto se reportan con qué pedir |
 | CA1–CA5 | **Hecho** | Tope 25, valores solo de herramientas, confirmación verificada en código, `log.jsonl`, errores sin matar la sesión |
-| Bonus módulo | **Hecho** | `modulo/agent.md` y `modulo/skill/ordenes-compra/SKILL.md` son enlaces simbólicos a `agent/prompt.md` y `src/knowledge/ordenes-compra.md` (con su frontmatter); `modulo/tools/oc.ts` re-exporta `src/tools/oc.ts`. Son los mismos archivos que lee la app: no pueden divergir |
+| Bonus módulo (9.4) | **Hecho** | `modulo/agent.md` (frontmatter `description`, `mode: primary`, `permission {edit: deny, bash: deny}` + system prompt), `modulo/tools/oc.ts` (re-export: mismas herramientas, importables sin el servidor) y `modulo/skill/ordenes-compra/SKILL.md` (frontmatter `name`, `description` + conocimiento). Los Markdown son idénticos byte a byte a los que lee el runtime; `npm run modulo` y `demo.ts` fallan si divergen |
 | `oc_leer_excel` | No hecho | P1 opcional |
 
 Para producción falta: persistencia real (base de datos para sesiones, log y control), autenticación y roles, el adaptador SAP real, lectura de adjuntos binarios desde el buzón y monitoreo.
