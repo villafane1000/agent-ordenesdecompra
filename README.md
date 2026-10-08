@@ -62,7 +62,7 @@ src/agent/runtime.ts          ciclo del agente, sesiones, confirmación, log, to
 src/http.ts · api/            API (Vercel) · scripts/dev-server.ts (local)
 public/index.html             front de chat
 fixtures/reto-03/             entregados por Periferia (sin modificar)
-modulo/                       bonus: agente empaquetado (mismos archivos, no copias)
+modulo/                       bonus: agente empaquetado; npm run modulo verifica que sea idéntico a la app
 demo.ts                       verificación sin modelo
 ```
 
