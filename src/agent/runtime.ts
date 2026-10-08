@@ -64,7 +64,11 @@ export async function turno(p: Peticion): Promise<Respuesta> {
 
 // ───────────────────────────── Modo LLM ─────────────────────────────
 async function turnoLlm(p: Peticion): Promise<Respuesta> {
-  const client = new Anthropic({ apiKey: apiKey() });
+  const client = new Anthropic({
+    apiKey: apiKey(),
+    // Solo necesario si la API key no está asociada a un workspace
+    ...(process.env.ANTHROPIC_WORKSPACE_ID ? { defaultHeaders: { "anthropic-workspace-id": process.env.ANTHROPIC_WORKSPACE_ID } } : {}),
+  });
   const messages: Msg[] = [...(p.messages ?? [])];
   const eventos: Evento[] = [];
   const uso = { inputTokens: 0, outputTokens: 0, costoUSD: 0, llamadas: 0 };
