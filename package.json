@@ -2,11 +2,10 @@
   "name": "periferia-oc",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "demo": "tsx demo.ts",
-    "dev": "tsx server.ts",
+    "dev": "tsx scripts/dev-server.ts",
     "typecheck": "tsc -p ."
   },
   "keywords": [],
@@ -19,7 +18,7 @@
   "devDependencies": {
     "@types/node": "^26.6.4",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "5.9"
   },
   "type": "module",
   "engines": {

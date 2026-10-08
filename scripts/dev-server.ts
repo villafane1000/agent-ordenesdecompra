@@ -1,8 +1,8 @@
-// Servidor local para desarrollo: npx tsx server.ts  (o bun server.ts). Abre http://localhost:3000
+// Servidor local para desarrollo: npx tsx scripts/dev-server.ts  (o bun scripts/dev-server.ts). Abre http://localhost:3000
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { manejarChat, estado } from "./src/http.js";
+import { manejarChat, estado } from "../src/http.js";
 
 const PORT = Number(process.env.PORT ?? 3000);
 
@@ -16,7 +16,7 @@ createServer(async (req, res) => {
   } else if (url.pathname === "/api/estado") {
     r = estado();
   } else {
-    try { r = new Response(await readFile(join(process.cwd(), "public", "index.html")), { headers: { "content-type": "text/html; charset=utf-8" } }); }
+    try { r = new Response(await readFile(new URL("../public/index.html", import.meta.url)), { headers: { "content-type": "text/html; charset=utf-8" } }); }
     catch { r = new Response("No encontrado", { status: 404 }); }
   }
   res.writeHead(r.status, Object.fromEntries(r.headers));

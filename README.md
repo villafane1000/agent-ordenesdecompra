@@ -9,7 +9,7 @@ Node 20+ (o Bun). Opcional: `ANTHROPIC_API_KEY` para el modo con LLM.
 ```bash
 npm install
 npx tsx demo.ts          # verificación de los 6 casos, sin LLM   (o: bun demo.ts)
-npx tsx server.ts        # chat local en http://localhost:3000
+npx tsx scripts/dev-server.ts   # chat local en http://localhost:3000
 ```
 
 ## Variables de entorno
