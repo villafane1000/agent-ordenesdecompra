@@ -5,7 +5,7 @@
   "outputDirectory": "public",
   "functions": {
     "api/*.ts": {
-      "includeFiles": "{fixtures/**,agent/**}",
+      "includeFiles": "{fixtures/**,agent/**,src/knowledge/**}",
       "maxDuration": 60
     }
   }

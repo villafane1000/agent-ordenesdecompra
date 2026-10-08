@@ -9,8 +9,9 @@ const root = fileURLToPath(new URL(".", import.meta.url)).replace(/\/$/, "");
 limpiarOut(root); // determinismo: out/ se limpia al inicio
 const ctx: ToolCtx = { directory: root, sessionId: "demo", confirmacionUsuario: false };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type R = { ok: boolean; data?: any; error?: string };
+interface Hallazgo { regla: string; detalle: string; accion?: string }
+interface Datos { apta: boolean; retroactiva: boolean; bloqueos: Hallazgo[]; confirmaciones: Hallazgo[]; derivados: Record<string, { valor?: string; fuente?: string }>; trazabilidad: string; ruta: string; ruta_pdf: string; sha256: string; numero_oc: string; idempotente: boolean }
+type R = { ok: boolean; data: Datos; error?: string };
 const call = async (nombre: string, args: object, c: ToolCtx = ctx): Promise<R> => JSON.parse(await invocar(herramientas[nombre], args, c));
 const linea = "─".repeat(78);
 
@@ -21,7 +22,7 @@ async function procesar(caso: string, confirmado = false) {
   console.log(`  apta: ${v.apta}   retroactiva: ${v.retroactiva}`);
   for (const b of v.bloqueos) console.log(`  ✗ BLOQUEO ${b.regla}: ${b.detalle}\n      → ${b.accion}`);
   for (const c of v.confirmaciones) console.log(`  ? CONFIRMAR ${c.regla}: ${c.detalle}`);
-  for (const [k, d] of Object.entries(v.derivados as Record<string, { valor?: string; fuente?: string }>)) if (d?.fuente) console.log(`  ↳ derivado ${k} = ${d.valor} (${d.fuente})`);
+  for (const [k, d] of Object.entries(v.derivados)) if (d?.fuente) console.log(`  ↳ derivado ${k} = ${d.valor} (${d.fuente})`);
   if (v.apta) {
     const p = await call("oc_construir_payload", { caso, paquete: paquete.data, derivados: v.derivados });
     if (p.ok) console.log(`  payload OK (zod) · trazabilidad: ${p.data.trazabilidad}`);
@@ -33,7 +34,7 @@ async function procesar(caso: string, confirmado = false) {
   return c;
 }
 
-const casos = JSON.parse(await invocar(herramientas.oc_listar_casos, {}, ctx)).data as string[];
+const casos = (JSON.parse(await invocar(herramientas.oc_listar_casos, {}, ctx)) as { data: string[] }).data;
 console.log(`${linea}\nVerificación sin LLM · ${casos.length} casos · salida en ${dirOut(root)}\n${linea}`);
 for (const caso of casos) { console.log(`\n■ ${caso}`); await procesar(caso); }
 

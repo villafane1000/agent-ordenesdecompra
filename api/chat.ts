@@ -1,5 +1,5 @@
-import { manejarChat } from "../src/http.js";
+import { postChat } from "../src/http.js";
 
 export async function POST(req: Request) {
-  return manejarChat(req);
+  return postChat(req);
 }

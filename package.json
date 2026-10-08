@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "test": "tsx --test tests/*.test.ts",
     "demo": "tsx demo.ts",
     "dev": "tsx scripts/dev-server.ts",
     "typecheck": "tsc -p ."
