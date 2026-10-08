@@ -7,6 +7,8 @@ export interface ToolCtx {
   sessionId: string;
   /** CA3: true solo si el último mensaje del usuario es una confirmación explícita. Lo fija el runtime, no el modelo. */
   confirmacionUsuario?: boolean;
+  /** Si se define, el SAP simulado se aísla en out/sessions/<sapScope>/sap (cada sesión del chat es un sandbox). */
+  sapScope?: string;
 }
 
 export interface Herramienta<A extends z.ZodRawShape = z.ZodRawShape> {

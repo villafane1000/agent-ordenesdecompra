@@ -10,8 +10,8 @@ import type { SapAdapter } from "./adapter.js";
 interface Registro { numero_oc: string; fecha: string; orden: OrdenCompra }
 
 export class SapMock implements SapAdapter {
-  constructor(private root: string) {}
-  private get ruta() { return join(dirOut(this.root), "sap", "ordenes.jsonl"); }
+  constructor(private root: string, private scope?: string) {}
+  private get ruta() { return this.scope ? join(dirOut(this.root), "sessions", this.scope, "sap", "ordenes.jsonl") : join(dirOut(this.root), "sap", "ordenes.jsonl"); }
 
   private leer(): Registro[] {
     if (!existsSync(this.ruta)) return [];

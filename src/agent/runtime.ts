@@ -70,7 +70,7 @@ export async function chat(entrada: { sessionId?: string | null; message: string
   sesion.mensajes.push({ rol: "user", texto: entrada.message });
   sesion.visibles.push({ rol: "user", texto: entrada.message });
   // CA3: la confirmación solo vale si ESTE mensaje del usuario confirma. El modelo no puede fabricarla.
-  const ctx = { directory: ROOT, sessionId: id, confirmacionUsuario: esConfirmacion(entrada.message) };
+  const ctx = { directory: ROOT, sessionId: id, sapScope: id, confirmacionUsuario: esConfirmacion(entrada.message) }; // cada sesión = sandbox de SAP
 
   if (llm.proveedor !== "reglas" && sesion.tokens.entrada + sesion.tokens.salida > MAX_TOKENS_SESION) {
     reply = `Se alcanzó el tope de tokens de esta sesión (${MAX_TOKENS_SESION}). Abre una sesión nueva o usa el modo sin LLM.`;

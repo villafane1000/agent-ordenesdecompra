@@ -152,6 +152,7 @@ Implementada en `src/domain/reglas.ts` como función pura `validar(paquete, maes
 | 5 | Front en HTML plano | React/Next | Cero build, despliegue trivial en Vercel, menos superficie de fallos en 2 horas |
 | 6 | Adaptador "reglas" con la misma interfaz que el LLM | Desactivar el chat sin clave | Degradación controlada: si el proveedor cae en la defensa, el agente sigue operando |
 | 7 | Vercel serverless con `out/` en `/tmp` | Servidor persistente (Render/Fly) | Despliegue ya probado; el costo es que `out/` es efímero por instancia (ver riesgos) |
+| 8 | En el chat, **cada sesión tiene su propio SAP simulado** (`out/sessions/<id>/sap`); `demo.ts` usa uno global | Un único SAP simulado compartido por todos los usuarios del link | Con un SAP compartido, quien pruebe después ve "la OC ya existía" en lugar del flujo completo. El sandbox por sesión hace reproducible la demo del PRD; la idempotencia se demuestra repitiendo el caso en la misma sesión y en `demo.ts`. En producción hay un solo SAP y la idempotencia es global por `solicitud_id` |
 
 ## 9. Supuestos
 
@@ -163,7 +164,8 @@ Implementada en `src/domain/reglas.ts` como función pura `validar(paquete, maes
 6. La descripción se trunca a 40 caracteres (límite SAP de texto breve); la completa queda en la solicitud y la trazabilidad.
 7. La unidad se toma de la solicitud si existe; si no, se infiere de la descripción (horas → H, mensual → MES, resto UN) y queda como derivado en la trazabilidad.
 8. Las condiciones de pago de la cotización ("según acuerdo comercial") no sobrescriben las de la solicitud o el proveedor.
-9. El SAP simulado reinicia su numeración cuando se limpia `out/` (determinismo de `demo.ts`).
+9. El SAP simulado reinicia su numeración cuando se limpia `out/` (determinismo de `demo.ts`); en el chat, cada sesión es un sandbox con su propia numeración desde 4500000001.
+10. `oc_validar` informa `oc_existente` si la solicitud ya tiene OC, para que el agente lo diga antes de pedir confirmación.
 
 ## 10. Cobertura
 

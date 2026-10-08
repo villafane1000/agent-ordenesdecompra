@@ -6,7 +6,7 @@ import type { Comparacion } from "../domain/tipos.js";
 export const esConfirmacion = (t: string) => /^\s*(s[ií]\b|confirm[oa]?\b|confirmado|apruebo|adelante|procede|proceder|ok\b|dale|de acuerdo|est[aá] bien)/i.test(t) && !/\bno\b/i.test(t);
 const casoDe = (t: string) => t.match(/sol-\d{3}/i)?.[0].toLowerCase() ?? null;
 
-interface Res { ok: boolean; data?: Record<string, unknown> & { apta?: boolean; bloqueos?: Array<{ regla: string; detalle: string; accion?: string }>; confirmaciones?: Array<{ regla: string; detalle: string; accion?: string; comparacion?: Comparacion }> }; error?: string }
+interface Res { ok: boolean; data?: Record<string, unknown> & { apta?: boolean; oc_existente?: string | null; bloqueos?: Array<{ regla: string; detalle: string; accion?: string }>; confirmaciones?: Array<{ regla: string; detalle: string; accion?: string; comparacion?: Comparacion }> }; error?: string }
 
 export class ReglasAdapter implements AdaptadorLLM {
   readonly proveedor = "reglas";
@@ -47,6 +47,7 @@ export class ReglasAdapter implements AdaptadorLLM {
     const c = res.get("oc_crear")!;
     const orden = (res.get("oc_construir_payload")?.data as { orden?: Orden } | undefined)?.orden;
     const partes: string[] = [];
+    if (v.oc_existente && !c.ok && v.apta) partes.push(`ℹ Esta solicitud ya tiene la **OC ${v.oc_existente}** en esta sesión. Si confirmas, se devuelve la misma OC (idempotencia): nunca se crea un duplicado.`);
     if (c.ok) partes.push(c.data!.idempotente ? `**${caso}: la OC ya existía para esta solicitud (idempotencia).**` : `**${caso}: OC creada sin excepciones.**`);
     else if (!v.apta) partes.push(`**${caso}: no se crea la OC** (tiene bloqueos).`);
     else partes.push(`**${caso}: la OC está lista, pero requiere tu confirmación. Todavía NO se ha creado.**`);

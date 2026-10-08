@@ -16,7 +16,7 @@ const caso = z.string().regex(/^[\w-]+$/).describe("Nombre de la carpeta del cas
 const paqueteArg = z.unknown().optional().describe("Paquete devuelto por oc_leer_paquete. Opcional: el servidor lo relee de la fuente para que nadie pueda alterarlo");
 
 /** Fábrica del adaptador SAP: hoy el mock sobre archivos; en producción, el adaptador real (ver SOLUCION.md). */
-export const crearSap = (ctx: ToolCtx): SapAdapter => new SapMock(ctx.directory);
+export const crearSap = (ctx: ToolCtx): SapAdapter => new SapMock(ctx.directory, ctx.sapScope);
 
 /** Recalcula todo desde la fuente: el modelo nunca aporta valores, solo el nombre del caso. */
 function evaluar(ctx: ToolCtx, c: string) {
@@ -42,9 +42,14 @@ export const leer_paquete: Herramienta<{ caso: typeof caso }> = {
 };
 
 export const validar: Herramienta<{ caso: typeof caso; paquete: typeof paqueteArg }> = {
-  description: "Aplica las reglas de control RC1–RC10 y devuelve { apta, bloqueos[], confirmaciones[], derivados, retroactiva }.",
+  description: "Aplica las reglas de control RC1–RC10 y devuelve { apta, bloqueos[], confirmaciones[], derivados, retroactiva, oc_existente }.",
   args: { caso, paquete: paqueteArg },
-  execute: (a, ctx) => seguro(() => evaluar(ctx, a.caso).validacion),
+  execute: (a, ctx) => seguro(async () => {
+    const { paquete, validacion } = evaluar(ctx, a.caso);
+    // Informa desde el inicio si la solicitud ya tiene OC: oc_crear no duplicará (idempotencia).
+    const existente = await crearSap(ctx).buscarOrdenPorReferencia(paquete.solicitud.solicitud_id);
+    return { ...validacion, oc_existente: existente?.numero_oc ?? null };
+  }),
 };
 
 export const construir_payload: Herramienta<{ caso: typeof caso; paquete: typeof paqueteArg; derivados: typeof paqueteArg }> = {
