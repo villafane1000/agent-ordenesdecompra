@@ -3,7 +3,7 @@ import { z } from "zod";
 import { chat, obtenerSesion, proveedorActivo } from "./agent/runtime.js";
 
 const ChatBody = z.object({
-  sessionId: z.string().max(64).optional(),
+  sessionId: z.string().max(64).nullish(),
   message: z.string().min(1).max(4000),
   modo: z.enum(["llm", "reglas"]).optional(),
   historial: z.array(z.unknown()).max(600).optional(),

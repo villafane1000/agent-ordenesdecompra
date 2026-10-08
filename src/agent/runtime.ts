@@ -57,7 +57,7 @@ function resumir(nombre: string, contenido: string): { ok: boolean; resumen: str
   return { ok: true, resumen, resultado: r.data };
 }
 
-export async function chat(entrada: { sessionId?: string; message: string; modo?: string; historial?: Mensaje[] }): Promise<RespuestaChat> {
+export async function chat(entrada: { sessionId?: string | null; message: string; modo?: string; historial?: Mensaje[] }): Promise<RespuestaChat> {
   const id = entrada.sessionId && idValido(entrada.sessionId) ? entrada.sessionId : crypto.randomUUID();
   const sesion: Sesion = obtenerSesion(id) ?? { id, mensajes: entrada.historial ?? [], visibles: [], tokens: { entrada: 0, salida: 0 } };
   let llm = adaptador(entrada.modo);
