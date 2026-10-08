@@ -9,7 +9,7 @@ const root = fileURLToPath(new URL(".", import.meta.url)).replace(/\/$/, "");
 limpiarOut(root); // determinismo: out/ se limpia al inicio
 const ctx: ToolCtx = { directory: root, sessionId: "demo", confirmacionUsuario: false };
 
-interface Hallazgo { regla: string; detalle: string; accion?: string }
+interface Hallazgo { regla: string; detalle: string; accion?: string; comparacion?: { campo: string; valores: Array<{ fuente: string; valor: string }>; diferencia?: string; resultado: string } }
 interface Datos { apta: boolean; retroactiva: boolean; bloqueos: Hallazgo[]; confirmaciones: Hallazgo[]; derivados: Record<string, { valor?: string; fuente?: string }>; trazabilidad: string; ruta: string; ruta_pdf: string; sha256: string; numero_oc: string; idempotente: boolean }
 type R = { ok: boolean; data: Datos; error?: string };
 const call = async (nombre: string, args: object, c: ToolCtx = ctx): Promise<R> => JSON.parse(await invocar(herramientas[nombre], args, c));
@@ -21,7 +21,10 @@ async function procesar(caso: string, confirmado = false) {
   const v = (await call("oc_validar", { caso, paquete: paquete.data })).data;
   console.log(`  apta: ${v.apta}   retroactiva: ${v.retroactiva}`);
   for (const b of v.bloqueos) console.log(`  ✗ BLOQUEO ${b.regla}: ${b.detalle}\n      → ${b.accion}`);
-  for (const c of v.confirmaciones) console.log(`  ? CONFIRMAR ${c.regla}: ${c.detalle}`);
+  for (const c of v.confirmaciones) {
+    console.log(`  ? CONFIRMAR ${c.regla}: ${c.detalle}`);
+    if (c.comparacion) console.log(`      ${c.comparacion.valores.map((x) => `${x.fuente}: ${x.valor}`).join("  vs  ")}${c.comparacion.diferencia ? `  ·  diferencia ${c.comparacion.diferencia}` : ""}`);
+  }
   for (const [k, d] of Object.entries(v.derivados)) if (d?.fuente) console.log(`  ↳ derivado ${k} = ${d.valor} (${d.fuente})`);
   if (v.apta) {
     const p = await call("oc_construir_payload", { caso, paquete: paquete.data, derivados: v.derivados });

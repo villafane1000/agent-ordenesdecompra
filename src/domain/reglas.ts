@@ -54,7 +54,8 @@ export function validar(p: Paquete, m: Maestros): Validacion {
 
   // RC5 · cotización vs solicitud (≤ 2 %); sin cotización → confirmación
   const c = p.cotizacion;
-  if (!c) confirmaciones.push({ regla: "RC5", detalle: "El paquete no trae cotización.", accion: "Confirmar que se crea la OC sin cotización (desvío de proceso)." });
+  if (!c) confirmaciones.push({ regla: "RC5", detalle: "El paquete no trae cotización.", accion: "Confirmar que se crea la OC sin cotización (desvío de proceso).",
+    comparacion: { campo: "Valor total", valores: [{ fuente: "Solicitud", valor: fmt(s.valor_total, s.moneda) }, { fuente: "Cotización", valor: "(no viene en el paquete)" }], resultado: "Sin cotización → requiere confirmación." } });
   else {
     // PRD RC5: se compara el TOTAL de la cotización con valor_total de la solicitud (ambos con IVA incluido en los fixtures).
     const ref = c.total;
@@ -63,7 +64,12 @@ export function validar(p: Paquete, m: Maestros): Validacion {
       regla: "RC5",
       detalle: `Solicitud ${fmt(s.valor_total, s.moneda)} vs cotización ${fmt(ref, c.moneda)} (diferencia ${fmt(Math.abs(ref - s.valor_total), s.moneda)}, ${(dif * 100).toFixed(1)} %; tolerancia 2 %).`,
       accion: "Confirmar que la OC se crea con el valor de la solicitud aprobada; si el valor real es el de la cotización, se requiere nueva aprobación.",
-      comparacion: { campo: "Valor total (IVA incluido)", solicitud: fmt(s.valor_total, s.moneda), cotizacion: fmt(ref, c.moneda), diferencia: `${fmt(Math.abs(ref - s.valor_total), s.moneda)} (${(dif * 100).toFixed(1)} %)` },
+      comparacion: {
+        campo: "Valor total (IVA incluido)",
+        valores: [{ fuente: "Solicitud", valor: fmt(s.valor_total, s.moneda) }, { fuente: "Cotización", valor: fmt(ref, c.moneda) }],
+        diferencia: `${fmt(Math.abs(ref - s.valor_total), s.moneda)} (${(dif * 100).toFixed(1)} %) · tolerancia 2 %`,
+        resultado: `Excede la tolerancia → requiere confirmación. La OC se crearía por ${fmt(s.valor_total, s.moneda)} (valor de la solicitud aprobada).`,
+      },
     });
   }
 
@@ -72,7 +78,8 @@ export function validar(p: Paquete, m: Maestros): Validacion {
     const def = prov?.indicador_iva_default;
     if (def) {
       derivados.indicador_iva = { valor: def, fuente: "maestro.proveedores.indicador_iva_default" };
-      confirmaciones.push({ regla: "RC6", detalle: `La solicitud no informa indicador de IVA; se propone ${def} (default del proveedor${ivaDesc(m, def)}).`, accion: `Confirmar el indicador ${def}.` });
+      confirmaciones.push({ regla: "RC6", detalle: `La solicitud no informa indicador de IVA; se propone ${def} (default del proveedor${ivaDesc(m, def)}).`, accion: `Confirmar el indicador ${def}.`,
+        comparacion: { campo: "Indicador de IVA", valores: [{ fuente: "Solicitud", valor: "(no informado)" }, { fuente: "Maestro de proveedores", valor: `${def}${ivaDesc(m, def)}` }], resultado: `Se usaría ${def} (derivado) → requiere confirmación.` } });
     } else confirmaciones.push({ regla: "RC6", detalle: "La solicitud no informa indicador de IVA y el proveedor no tiene default.", accion: "Indicar el código de IVA." });
   } else if (!m.iva.some((i) => i.codigo === s.indicador_iva)) {
     confirmaciones.push({ regla: "RC6", detalle: `El indicador de IVA ${s.indicador_iva} no existe en el maestro.`, accion: "Confirmar o corregir el indicador." });
@@ -84,11 +91,13 @@ export function validar(p: Paquete, m: Maestros): Validacion {
   // RC8 · factura anterior a la solicitud → retroactiva (confirmación + registro)
   const fSol = fecha(s.fecha_solicitud);
   const retroactiva = !!(p.factura && fSol && p.factura.fecha < fSol);
-  if (retroactiva && p.factura) confirmaciones.push({ regla: "RC8", detalle: `OC retroactiva: la factura ${p.factura.numero} (${p.factura.fecha}) es anterior a la solicitud (${fSol}). Se omitió la cotización previa.`, accion: "Confirmar la creación; quedará marcada retroactiva = true en el log de control." });
+  if (retroactiva && p.factura) confirmaciones.push({ regla: "RC8", detalle: `OC retroactiva: la factura ${p.factura.numero} (${p.factura.fecha}) es anterior a la solicitud (${fSol}). Se omitió la cotización previa.`, accion: "Confirmar la creación; quedará marcada retroactiva = true en el log de control.",
+    comparacion: { campo: "Fecha", valores: [{ fuente: "Solicitud", valor: fSol ?? "" }, { fuente: `Factura ${p.factura.numero}`, valor: p.factura.fecha }], resultado: "La factura es anterior a la solicitud → OC retroactiva, requiere confirmación y queda marcada retroactiva = true." } });
 
   // RC9 · la aprobación no puede ser anterior a la solicitud
   const fApr = fecha(a?.fecha);
-  if (a && fApr && fSol && fApr < fSol) confirmaciones.push({ regla: "RC9", detalle: `La aprobación (${fApr}) es anterior a la solicitud (${fSol}).`, accion: "Confirmar que la aprobación corresponde a esta solicitud." });
+  if (a && fApr && fSol && fApr < fSol) confirmaciones.push({ regla: "RC9", detalle: `La aprobación (${fApr}) es anterior a la solicitud (${fSol}).`, accion: "Confirmar que la aprobación corresponde a esta solicitud.",
+    comparacion: { campo: "Fecha", valores: [{ fuente: "Solicitud", valor: fSol }, { fuente: "Aprobación", valor: fApr }], resultado: "La aprobación es anterior a la solicitud → requiere confirmación." } });
 
   return { apta: bloqueos.length === 0, bloqueos, confirmaciones, derivados, retroactiva };
 }
