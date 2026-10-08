@@ -20,7 +20,7 @@
   .bot.confirm .bubble{border:2px solid var(--warn);background:var(--warn-soft)}
   .bubble table{border-collapse:collapse;margin:6px 0;font-size:13px;white-space:normal}.bubble td,.bubble th{border:1px solid var(--line);padding:3px 8px;text-align:left}
   .tool{margin:6px 0;border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:8px;background:var(--panel);font-size:13px}
-  .tool.err{border-left-color:var(--bad)}.tool summary{cursor:pointer;padding:7px 12px;display:flex;gap:8px;align-items:baseline;list-style:none;flex-wrap:wrap}
+  .tool.err{border-left-color:var(--bad)}.tool.pend{border-left-color:var(--warn)}.tool summary{cursor:pointer;padding:7px 12px;display:flex;gap:8px;align-items:baseline;list-style:none;flex-wrap:wrap}
   .tool summary::-webkit-details-marker{display:none}.tool .name{font-family:ui-monospace,Menlo,monospace;font-weight:600}.tool .res{color:var(--muted)}.tool .ms{color:var(--muted);margin-left:auto;font-size:12px}
   .tool pre{margin:0;padding:10px 12px;background:var(--code);border-top:1px solid var(--line);overflow:auto;max-height:300px;font-size:12px}
   .banner{margin:10px 0;padding:12px 14px;border:2px solid var(--warn);background:var(--warn-soft);border-radius:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -68,7 +68,7 @@ function add(html, cls = "") { $("#empty")?.remove(); const d = document.createE
 const burbuja = (who, text, extra = "") => add(`<div class="bubble">${md(text)}</div>`, `msg ${who} ${extra}`);
 
 function toolCard(t) {
-  add(`<details class="tool ${t.ok ? "" : "err"}"><summary>🔧 <span class="name">${esc(t.nombre)}</span><span class="res">${esc(t.resumen)}</span><span class="ms">${t.ms} ms</span></summary><pre>argumentos: ${esc(JSON.stringify(t.args, null, 2))}\n\nresultado: ${esc(JSON.stringify(t.resultado, null, 2))}</pre></details>`);
+  add(`<details class="tool ${t.ok ? "" : /confirmaci[oó]n/i.test(t.resumen) ? "pend" : "err"}"><summary>🔧 <span class="name">${esc(t.nombre)}</span><span class="res">${esc(t.resumen)}</span><span class="ms">${t.ms} ms</span></summary><pre>argumentos: ${esc(JSON.stringify(t.args, null, 2))}\n\nresultado: ${esc(JSON.stringify(t.resultado, null, 2))}</pre></details>`);
 }
 
 function banner() {
