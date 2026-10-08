@@ -16,7 +16,7 @@ const caso = z.string().regex(/^[\w-]+$/).describe("Nombre de la carpeta del cas
 const paqueteArg = z.unknown().optional().describe("Paquete devuelto por oc_leer_paquete. Opcional: el servidor lo relee de la fuente para que nadie pueda alterarlo");
 
 /** Fábrica del adaptador SAP: hoy el mock sobre archivos; en producción, el adaptador real (ver SOLUCION.md). */
-export let crearSap = (ctx: ToolCtx): SapAdapter => new SapMock(ctx.directory);
+export const crearSap = (ctx: ToolCtx): SapAdapter => new SapMock(ctx.directory);
 
 /** Recalcula todo desde la fuente: el modelo nunca aporta valores, solo el nombre del caso. */
 function evaluar(ctx: ToolCtx, c: string) {

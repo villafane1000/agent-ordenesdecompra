@@ -1,3 +1,8 @@
+---
+name: ordenes-compra
+description: Conocimiento del proceso de órdenes de compra de Periferia (reglas de control RC1–RC10, acciones sugeridas, retroactivas, códigos de IVA y pago). Usar al procesar solicitudes de compra o explicar por qué una OC se bloquea o requiere confirmación.
+---
+
 ## Proceso de órdenes de compra (Periferia IT Group)
 
 Cada compra llega por correo con tres piezas: la solicitud (Excel, aquí `solicitud.json`), la cotización del proveedor (`cotizacion.txt`) y el correo de aprobación del líder (`aprobacion.json`). En algunos casos llega además la factura (`factura.txt`). La OC en SAP se crea con sociedad 1000 y organización de compras 1000; el correo de aprobación se adjunta como evidencia (texto y PDF con su sha256).

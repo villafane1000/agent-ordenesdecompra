@@ -26,8 +26,9 @@ function unidad(p: Paquete): "UN" | "H" | "MES" {
   const u = (p.solicitud.unidad ?? "").toUpperCase();
   if (u === "H" || u === "MES" || u === "UN") return u;
   const d = p.solicitud.descripcion.toLowerCase();
-  if (/\bhoras?\b|\bh\b/.test(d)) return "H";
-  if (/\bmes(es)?\b|mensual|suscripci[oó]n/.test(d)) return "MES";
+  if (/\bhoras?\b/.test(d)) return "H";
+  // "por mes"/"mensualidad" sí; "vigencia 12 meses" no (es la duración, no la unidad de compra)
+  if (/\bmensual(idad)?\b|\bpor mes\b|\bmes de\b/.test(d)) return "MES";
   return "UN";
 }
 

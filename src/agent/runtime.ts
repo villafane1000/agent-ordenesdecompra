@@ -17,7 +17,8 @@ const PRECIO_IN = Number(process.env.PRECIO_INPUT_MTOK ?? 3), PRECIO_OUT = Numbe
 
 let sistema: string | null = null;
 export function systemPrompt(): string {
-  sistema ??= readFileSync(join(ROOT, "agent", "prompt.md"), "utf8") + "\n\n---\n\n# Conocimiento del proceso\n\n" + readFileSync(join(ROOT, "src", "knowledge", "ordenes-compra.md"), "utf8");
+  const cuerpo = (ruta: string) => readFileSync(join(ROOT, ruta), "utf8").replace(/^---\n[\s\S]*?\n---\n/, "").trim(); // sin frontmatter
+  sistema ??= cuerpo("agent/prompt.md") + "\n\n---\n\n# Conocimiento del proceso\n\n" + cuerpo("src/knowledge/ordenes-compra.md");
   return sistema;
 }
 
