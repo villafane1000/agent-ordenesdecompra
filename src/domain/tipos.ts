@@ -55,7 +55,7 @@ export interface Paquete {
 }
 
 // ── Resultado de validación (HU-2) ─────────────────────────────────
-export interface Hallazgo { regla: string; detalle: string; accion?: string }
+export interface Hallazgo { regla: string; detalle: string; accion?: string; comparacion?: { campo: string; solicitud: string; cotizacion: string; diferencia?: string } }
 export interface Derivados { indicador_iva?: { valor: string; fuente: string }; condiciones_pago?: { valor: string; fuente: string }; proveedor?: { codigo_sap: string; nit: string; nombre: string } ; aprobador?: { email: string; tope: number } }
 export interface Validacion { apta: boolean; bloqueos: Hallazgo[]; confirmaciones: Hallazgo[]; derivados: Derivados; retroactiva: boolean }
 

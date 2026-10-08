@@ -59,7 +59,12 @@ export function validar(p: Paquete, m: Maestros): Validacion {
     // PRD RC5: se compara el TOTAL de la cotización con valor_total de la solicitud (ambos con IVA incluido en los fixtures).
     const ref = c.total;
     const dif = Math.abs(ref - s.valor_total) / s.valor_total;
-    if (dif > TOLERANCIA_COTIZACION) confirmaciones.push({ regla: "RC5", detalle: `Cotización ${fmt(ref, c.moneda)} vs solicitud ${fmt(s.valor_total, s.moneda)} (diferencia ${(dif * 100).toFixed(1)} %, tolerancia 2 %).`, accion: "Confirmar con cuál valor se crea la OC; se usa el de la solicitud aprobada." });
+    if (dif > TOLERANCIA_COTIZACION) confirmaciones.push({
+      regla: "RC5",
+      detalle: `Solicitud ${fmt(s.valor_total, s.moneda)} vs cotización ${fmt(ref, c.moneda)} (diferencia ${fmt(Math.abs(ref - s.valor_total), s.moneda)}, ${(dif * 100).toFixed(1)} %; tolerancia 2 %).`,
+      accion: "Confirmar que la OC se crea con el valor de la solicitud aprobada; si el valor real es el de la cotización, se requiere nueva aprobación.",
+      comparacion: { campo: "Valor total (IVA incluido)", solicitud: fmt(s.valor_total, s.moneda), cotizacion: fmt(ref, c.moneda), diferencia: `${fmt(Math.abs(ref - s.valor_total), s.moneda)} (${(dif * 100).toFixed(1)} %)` },
+    });
   }
 
   // RC6 · IVA ausente → se deriva del proveedor y se pide confirmación

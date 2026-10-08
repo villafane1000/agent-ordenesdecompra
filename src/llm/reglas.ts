@@ -5,7 +5,7 @@ import type { AdaptadorLLM, Llamada, Mensaje, RespuestaLLM } from "./adapter.js"
 export const esConfirmacion = (t: string) => /^\s*(s[ií]\b|confirm[oa]?\b|confirmado|apruebo|adelante|procede|proceder|ok\b|dale|de acuerdo|est[aá] bien)/i.test(t) && !/\bno\b/i.test(t);
 const casoDe = (t: string) => t.match(/sol-\d{3}/i)?.[0].toLowerCase() ?? null;
 
-interface Res { ok: boolean; data?: Record<string, unknown> & { apta?: boolean; bloqueos?: Array<{ regla: string; detalle: string; accion?: string }>; confirmaciones?: Array<{ regla: string; detalle: string; accion?: string }> }; error?: string }
+interface Res { ok: boolean; data?: Record<string, unknown> & { apta?: boolean; bloqueos?: Array<{ regla: string; detalle: string; accion?: string }>; confirmaciones?: Array<{ regla: string; detalle: string; accion?: string; comparacion?: { campo: string; solicitud: string; cotizacion: string; diferencia?: string } }> }; error?: string }
 
 export class ReglasAdapter implements AdaptadorLLM {
   readonly proveedor = "reglas";
@@ -79,7 +79,10 @@ function validaciones(v: Validacion): string {
   const pasan = Object.keys(REGLAS).filter((r) => !fallan.has(r));
   const l: string[] = [`**Validaciones que pasaron:** ${pasan.map((r) => `${r} (${REGLAS[r]})`).join(" · ")}`];
   if (v.bloqueos?.length) l.push("**Bloqueos:**\n" + v.bloqueos.map((b) => `✗ ${b.regla}: ${b.detalle}\n   Acción sugerida: ${b.accion}`).join("\n"));
-  if (v.confirmaciones?.length) l.push("**Requieren confirmación:**\n" + v.confirmaciones.map((x) => `? ${x.regla}: ${x.detalle}${x.accion ? `\n   ${x.accion}` : ""}`).join("\n"));
+  if (v.confirmaciones?.length) l.push("**Requieren confirmación:**\n" + v.confirmaciones.map((x) => {
+    const t = x.comparacion ? `\n| ${x.regla} · ${x.comparacion.campo} | Solicitud | Cotización | Diferencia |\n|---|---|---|---|\n| Valor | ${x.comparacion.solicitud} | ${x.comparacion.cotizacion} | ${x.comparacion.diferencia ?? ""} |\n` : "";
+    return `? ${x.regla}: ${x.detalle}${t}${x.accion ? `\n   ${x.accion}` : ""}`;
+  }).join("\n"));
   const der = Object.entries((v.derivados ?? {}) as Record<string, { valor?: string; fuente?: string }>).filter(([, d]) => d?.fuente);
   if (der.length) l.push("**Derivados de maestros:** " + der.map(([k, d]) => `${k} = ${d.valor} (${d.fuente})`).join(" · "));
   return l.join("\n\n");
