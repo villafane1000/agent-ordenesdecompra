@@ -16,7 +16,7 @@ Principio de diseño: **el LLM orquesta y explica; las reglas deciden.** Ninguna
 | Backend (ciclo del agente) | `src/agent/runtime.ts`, `api/chat.ts` |
 | Frontend de chat | `public/index.html` |
 | Script de verificación sin LLM | `demo.ts` (`npx tsx demo.ts` o `bun demo.ts`) |
-| URL pública | `[AJUSTAR: URL de Vercel]` |
+| URL pública | https://agent-ordenesdecompra.vercel.app |
 
 ## 2. Arquitectura
 

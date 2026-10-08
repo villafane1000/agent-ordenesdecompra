@@ -1,5 +1,7 @@
 # Agente de Órdenes de Compra — Periferia IT Group (Reto 3)
 
+**Demo en vivo:** https://agent-ordenesdecompra.vercel.app
+
 Agente conversacional en TypeScript que valida solicitudes de compra y crea órdenes en un SAP simulado, con confirmación humana. Detalle técnico en [SOLUCION.md](SOLUCION.md).
 
 ## Requisitos
