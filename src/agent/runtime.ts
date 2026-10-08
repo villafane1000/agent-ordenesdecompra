@@ -98,7 +98,7 @@ export async function turno(p: Peticion): Promise<Respuesta> {
   // Garantía: antes de pedir aprobación, la persona siempre lee un resumen. Si el modelo
   // pausó sin explicar, el runtime lo escribe con las cifras de las reglas.
   const ultimo = r.eventos.at(-1);
-  if (pendiente?.resumen && ultimo?.tipo !== "texto") r.eventos.push({ tipo: "texto", texto: textoResumen(pendiente.resumen) });
+  if (pendiente?.resumen && (r.modo === "reglas" || ultimo?.tipo !== "texto")) r.eventos.push({ tipo: "texto", texto: textoResumen(pendiente.resumen) });
   return { ...r, pendiente };
 }
 
