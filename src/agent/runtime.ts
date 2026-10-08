@@ -19,6 +19,9 @@ export interface Pendiente { toolUseId: string; nombre: string; input: Record<st
 export interface Peticion { modo?: "llm" | "reglas"; messages: Msg[]; mensaje?: string; confirmacion?: { toolUseId: string; aprobado: boolean; comentario?: string }; pendiente?: Pendiente }
 export interface Respuesta { modo: "llm" | "reglas"; messages: Msg[]; eventos: Evento[]; pendiente: Pendiente | null; uso: { inputTokens: number; outputTokens: number; costoUSD: number; llamadas: number } }
 
+/** Acepta ANTHROPIC_API_KEY o ANTHROPIC_API_KEY_GENERAL (nombre usado en Vercel). */
+export const apiKey = () => process.env.ANTHROPIC_API_KEY ?? process.env.ANTHROPIC_API_KEY_GENERAL;
+
 const MODEL = process.env.MODEL ?? "claude-sonnet-5-5";
 const PRECIO_IN = Number(process.env.PRECIO_INPUT_MTOK ?? 3); // USD por millón de tokens (verificar tarifa vigente)
 const PRECIO_OUT = Number(process.env.PRECIO_OUTPUT_MTOK ?? 15);
@@ -47,21 +50,21 @@ async function correrHerramienta(id: string, nombre: string, input: unknown, eve
 }
 
 // La acción pendiente viaja al navegador; se firma para que no pueda alterarse antes de aprobarla.
-const SECRETO = process.env.SIGNING_SECRET ?? process.env.ANTHROPIC_API_KEY ?? "dev-secret";
+const SECRETO = process.env.SIGNING_SECRET ?? apiKey() ?? "dev-secret";
 const firmar = (x: Pendiente) => createHmac("sha256", SECRETO).update(JSON.stringify([x.toolUseId, x.nombre, x.input, x.resultadosPrevios])).digest("hex");
 const conFirma = (x: Pendiente | null) => (x ? { ...x, firma: firmar(x) } : null);
 const firmaValida = (x: Pendiente) => { const a = Buffer.from(x.firma ?? ""), b = Buffer.from(firmar(x)); return a.length === b.length && timingSafeEqual(a, b); };
 
 export async function turno(p: Peticion): Promise<Respuesta> {
   if (p.confirmacion && (!p.pendiente || !firmaValida(p.pendiente))) throw new Error("Acción pendiente inválida o alterada");
-  const modo = p.modo === "reglas" || !process.env.ANTHROPIC_API_KEY ? "reglas" : "llm";
+  const modo = p.modo === "reglas" || !apiKey() ? "reglas" : "llm";
   const r = modo === "llm" ? await turnoLlm(p) : await turnoReglas(p);
   return { ...r, pendiente: conFirma(r.pendiente) };
 }
 
 // ───────────────────────────── Modo LLM ─────────────────────────────
 async function turnoLlm(p: Peticion): Promise<Respuesta> {
-  const client = new Anthropic();
+  const client = new Anthropic({ apiKey: apiKey() });
   const messages: Msg[] = [...(p.messages ?? [])];
   const eventos: Evento[] = [];
   const uso = { inputTokens: 0, outputTokens: 0, costoUSD: 0, llamadas: 0 };

@@ -15,7 +15,7 @@ npx tsx server.ts        # chat local en http://localhost:3000
 ## Variables de entorno
 | Variable | Uso | Defecto |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | Habilita el modo con LLM | (sin ella, modo reglas) |
+| `ANTHROPIC_API_KEY` o `ANTHROPIC_API_KEY_GENERAL` | Habilita el modo con LLM | (sin ella, modo reglas) |
 | `MODEL` | Modelo | `claude-sonnet-5-5` |
 | `PRECIO_INPUT_MTOK` / `PRECIO_OUTPUT_MTOK` | Precio USD por millón de tokens para el costo estimado | 3 / 15 |
 | `SIGNING_SECRET` | Firma de acciones pendientes | deriva de la API key |

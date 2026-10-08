@@ -1,5 +1,5 @@
 // Handler HTTP compartido por Vercel (api/chat.ts) y el servidor local (server.ts).
-import { turno, type Peticion } from "./agent/runtime.js";
+import { turno, apiKey, type Peticion } from "./agent/runtime.js";
 
 export async function manejarChat(req: Request): Promise<Response> {
   if (req.method !== "POST") return Response.json({ error: "Usa POST" }, { status: 405 });
@@ -15,4 +15,4 @@ export async function manejarChat(req: Request): Promise<Response> {
   }
 }
 
-export const estado = () => Response.json({ ok: true, modoLlmDisponible: !!process.env.ANTHROPIC_API_KEY, modelo: process.env.MODEL ?? "claude-sonnet-5-5" });
+export const estado = () => Response.json({ ok: true, modoLlmDisponible: !!apiKey(), modelo: process.env.MODEL ?? "claude-sonnet-5-5" });
