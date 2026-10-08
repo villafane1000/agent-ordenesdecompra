@@ -2,8 +2,11 @@
 // MAÑANA: ajustar los tipos y nombres de campo a los fixtures reales.
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const BASE = process.env.FIXTURES_DIR ?? join(process.cwd(), "fixtures", "reto-03");
+// Ruta relativa al propio archivo (src/data/ -> raíz), así funciona igual en local y en Vercel
+const RAIZ = fileURLToPath(new URL("../../", import.meta.url));
+const BASE = process.env.FIXTURES_DIR ?? join(RAIZ, "fixtures", "reto-03");
 
 export interface Proveedor { nit: string; razonSocial: string; estado: string; indicadorIvaDefault?: string; condicionPagoDefault?: string; [k: string]: unknown }
 export interface CentroCosto { codigo: string; nombre: string; subareas?: string[]; lider: string; topeAprobacion: number; [k: string]: unknown }

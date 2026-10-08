@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { readFileSync } from "node:fs";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { herramientas, porNombre, ejecutar } from "../tools/oc.js";
 import type { Evaluacion } from "../domain/controles.js";
@@ -24,7 +25,7 @@ const PRECIO_OUT = Number(process.env.PRECIO_OUTPUT_MTOK ?? 15);
 const MAX_ITER = 10;
 
 let systemPrompt: string | null = null;
-const prompt = () => (systemPrompt ??= readFileSync(join(process.cwd(), "agent", "prompt.md"), "utf8"));
+const prompt = () => (systemPrompt ??= readFileSync(join(fileURLToPath(new URL("../../", import.meta.url)), "agent", "prompt.md"), "utf8"));
 
 const toolsApi: Anthropic.Tool[] = herramientas.map((h) => {
   const { $schema, ...schema } = z.toJSONSchema(h.input) as Record<string, unknown>;
