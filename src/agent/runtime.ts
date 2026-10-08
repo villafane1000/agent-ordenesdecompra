@@ -58,6 +58,20 @@ const SECRETO = process.env.SIGNING_SECRET ?? apiKey() ?? "dev-secret";
 const firmar = (x: Pendiente) => createHmac("sha256", SECRETO).update(JSON.stringify([x.toolUseId, x.nombre, x.input, x.resultadosPrevios])).digest("hex");
 const conFirma = (x: Pendiente | null) => (x ? { ...x, firma: firmar(x), resumen: resumir(x) } : null);
 
+const cop = (n: number) => "$" + Math.round(n).toLocaleString("es-CO");
+function textoResumen(r: ResumenOC): string {
+  return [
+    `**${r.solicitudId}** lista para orden de compra${r.retroactiva ? " (compra RETROACTIVA: requiere justificación)" : ""}.`,
+    `- **Proveedor:** ${r.proveedor ?? "?"} (NIT ${r.nit})`,
+    `- **Centro de costo:** ${r.centroCosto}`,
+    `- **Subtotal / IVA / Total:** ${cop(r.subtotal)} / ${cop(r.iva)} (${r.indicadorIva}) / ${cop(r.total)}`,
+    `- **Condición de pago:** ${r.condicionPago}`,
+    `- **Aprobado por:** ${r.aprobadoPor ?? "—"}`,
+    ...(r.alertas.length ? [`- **Alertas:** ${r.alertas.join("; ")}`] : []),
+    "Confirma en el recuadro para crear la OC en SAP.",
+  ].join("\n");
+}
+
 function resumir(x: Pendiente): ResumenOC | undefined {
   const id = x.input.solicitudId;
   if (x.nombre !== "crear_oc_sap" || typeof id !== "string") return undefined;
@@ -80,7 +94,12 @@ export async function turno(p: Peticion): Promise<Respuesta> {
   if (p.confirmacion && (!p.pendiente || !firmaValida(p.pendiente))) throw new Error("Acción pendiente inválida o alterada");
   const modo = p.modo === "reglas" || !apiKey() ? "reglas" : "llm";
   const r = modo === "llm" ? await turnoLlm(p) : await turnoReglas(p);
-  return { ...r, pendiente: conFirma(r.pendiente) };
+  const pendiente = conFirma(r.pendiente);
+  // Garantía: antes de pedir aprobación, la persona siempre lee un resumen. Si el modelo
+  // pausó sin explicar, el runtime lo escribe con las cifras de las reglas.
+  const ultimo = r.eventos.at(-1);
+  if (pendiente?.resumen && ultimo?.tipo !== "texto") r.eventos.push({ tipo: "texto", texto: textoResumen(pendiente.resumen) });
+  return { ...r, pendiente };
 }
 
 // ───────────────────────────── Modo LLM ─────────────────────────────
@@ -179,7 +198,7 @@ async function turnoReglas(p: Peticion): Promise<Respuesta> {
     const malos = ev.controles.filter((c) => c.resultado !== "OK").map((c) => `${c.resultado === "BLOQUEO" ? "✗" : "!"} ${c.id} ${c.control}: ${c.detalle}`);
     say(`**${id}** → ${ev.decision}${malos.length ? "\n" + malos.join("\n") : "\nTodos los controles OK."}`);
     if (ev.decision !== "RECHAZADA" && objetivo.length === 1) {
-      say(ev.retroactiva ? "Es una compra retroactiva: para crear la OC escribe la justificación en el comentario y aprueba." : `Lista para crear OC por $${ev.valores.total.toLocaleString("es-CO")} (IVA incluido).`);
+      // El resumen previo a la aprobación lo agrega turno() con las cifras de las reglas.
       return fin({ toolUseId: `reglas-${id}`, nombre: "crear_oc_sap", input: { solicitudId: id }, resultadosPrevios: [] });
     }
   }
